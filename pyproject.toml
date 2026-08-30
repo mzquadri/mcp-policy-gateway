@@ -46,6 +46,14 @@ line-length = 100
 target-version = "py311"
 src = ["src", "tests", "evaluation", "corpus"]
 
+[tool.ruff.format]
+# Ruff formats Python fenced in Markdown. For the learning docs that is the wrong call:
+# their snippets are illustrations, not source, and several align trailing comments into
+# a column because it makes a field list readable to someone meeting it for the first
+# time. Reformatting them costs the reader and gains nothing, since none of that code is
+# executed. Real modules are still formatted.
+exclude = ["docs/**/*.md"]
+
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 ignore = ["RUF001", "RUF002", "RUF003"]

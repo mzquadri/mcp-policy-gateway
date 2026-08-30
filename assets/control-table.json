@@ -1,0 +1,47 @@
+[
+  {
+    "control": "instruction_injection",
+    "attacks_caught": 15,
+    "benign_touched": 4
+  },
+  {
+    "control": "egress_control",
+    "attacks_caught": 4,
+    "benign_touched": 0
+  },
+  {
+    "control": "path_sandbox",
+    "attacks_caught": 4,
+    "benign_touched": 0
+  },
+  {
+    "control": "secret_disclosure",
+    "attacks_caught": 3,
+    "benign_touched": 0
+  },
+  {
+    "control": "schema_conformance",
+    "attacks_caught": 2,
+    "benign_touched": 0
+  },
+  {
+    "control": "tool_allowlist",
+    "attacks_caught": 2,
+    "benign_touched": 0
+  },
+  {
+    "control": "tool_shadowing",
+    "attacks_caught": 1,
+    "benign_touched": 0
+  },
+  {
+    "control": "destructive_action",
+    "attacks_caught": 1,
+    "benign_touched": 0
+  },
+  {
+    "control": "budget",
+    "attacks_caught": 1,
+    "benign_touched": 0
+  }
+]

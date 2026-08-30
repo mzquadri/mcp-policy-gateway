@@ -1,0 +1,19 @@
+{
+  "corpus_cases": 44,
+  "attacks": 26,
+  "benign": 18,
+  "attack_classes": 10,
+  "gateway_caught": 0.9231,
+  "gateway_false_block": 0.1111,
+  "keyword_caught": 0.3846,
+  "keyword_false_block": 0.3889,
+  "baseline_caught": 0.0,
+  "median_micros": 99.6,
+  "controls": 9,
+  "unhandled": [
+    "fp-known-001",
+    "fp-known-002",
+    "inject-006",
+    "secret-004"
+  ]
+}

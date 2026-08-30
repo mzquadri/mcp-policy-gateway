@@ -1,0 +1,40 @@
+mcp-policy-gateway
+Copyright (c) 2026 Mohd Zamin Quadri
+
+This project is an original implementation. It is not a fork of, and does not
+redistribute code from, any of the projects listed below. They are recorded
+because they are dependencies, prior art, or sources of the threat taxonomy
+this project measures against, and because that debt should be visible.
+
+--------------------------------------------------------------------------------
+DEPENDENCY
+
+Model Context Protocol Python SDK ("mcp")
+  https://github.com/modelcontextprotocol/python-sdk
+  Copyright (c) Anthropic, PBC and contributors
+  Licensed under the MIT License.
+
+  Used as the protocol implementation: the gateway speaks MCP through this SDK
+  rather than reimplementing the wire format. Installed as a normal dependency;
+  no SDK source is vendored into this repository.
+
+--------------------------------------------------------------------------------
+PRIOR ART, NOT USED AS CODE
+
+The attack taxonomy in corpus/ was derived from public descriptions of MCP
+threat classes. These projects and documents informed which classes are worth
+testing. No code was copied from any of them.
+
+  OWASP - MCP Tool Poisoning
+    https://owasp.org/www-community/attacks/MCP_Tool_Poisoning
+    Threat definitions for poisoned tool descriptions and tool shadowing.
+
+  Snyk agent-scan (Apache-2.0)
+    https://github.com/snyk/agent-scan
+    Static scanner for MCP servers and agent skills. Scans declarations before
+    use; this project enforces at call time. Read for its risk categories.
+
+  ColPali, tau2-bench and other repositories reviewed during selection are
+  recorded in docs/learning/02_foundations.md. None contributed code here.
+
+--------------------------------------------------------------------------------

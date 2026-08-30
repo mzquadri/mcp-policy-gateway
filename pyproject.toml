@@ -1,0 +1,57 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mcp-policy-gateway"
+version = "0.1.0"
+description = "Runtime policy enforcement for Model Context Protocol tool calls, with a deterministic adversarial benchmark."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [{ name = "Mohd Zamin Quadri" }]
+keywords = ["mcp", "model-context-protocol", "agent-security", "prompt-injection", "policy"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Security",
+]
+dependencies = ["mcp>=2.0,<3"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6", "mypy>=1.11"]
+
+[project.scripts]
+mcp-policy-gateway = "mcp_policy_gateway.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/mzquadri/mcp-policy-gateway"
+Source = "https://github.com/mzquadri/mcp-policy-gateway"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mcp_policy_gateway"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+asyncio_mode = "auto"
+filterwarnings = ["error::DeprecationWarning:mcp_policy_gateway.*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests", "evaluation", "corpus"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src"]
+ignore_missing_imports = true
+warn_unused_ignores = true

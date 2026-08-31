@@ -15,6 +15,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          # The authorship guard reads commit metadata, so it needs the commits.
+          fetch-depth: 0
+
+      # Metadata only: author, committer and trailer identities. It deliberately does not
+      # read file content, so the NOTICE naming Anthropic as the upstream copyright holder
+      # of the MCP SDK passes -- that is licence compliance, not a claim of contribution.
+      - name: Authorship
+        run: bash tools/check-authorship.sh --all
 
       - uses: actions/setup-python@v7
         with:

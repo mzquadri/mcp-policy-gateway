@@ -12,8 +12,8 @@ switchable and measurable rather than asserted:
 InstructionInjection(demote_when_framed=False)
 ```
 
-With demotion **off**, `ok-advisory-001` and `ok-advisory-002` — a security advisory and a
-detection rule under review — are refused outright. With it on, they pass with the quoted
+With demotion **off**, `ok-advisory-001` and `ok-advisory-002`, a security advisory and a
+detection rule under review, are refused outright. With it on, they pass with the quoted
 span redacted, and no attack case changes verdict.
 
 The mechanism is pinned by `test_reporting_context_demotes_rather_than_blocks` and
@@ -34,8 +34,8 @@ Median decision time, measured in the benchmark:
 | gateway | ~100 µs |
 
 Roughly 100 microseconds per event, three events per tool call, so about 0.3 ms of policy
-per call. Against a tool call that touches a disk or a network — units of milliseconds at
-best — this is not a number worth optimising.
+per call. Against a tool call that touches a disk or a network, units of milliseconds at
+best, this is not a number worth optimising.
 
 The design deliberately spends some of it: every control runs on every event even after
 one has blocked, which costs microseconds on already-refused calls and buys per-control
@@ -81,12 +81,12 @@ gateway in front of the official filesystem or fetch servers, with a corpus of d
 on disk, would test the proxy against a server that was not written to be tested.
 
 **Approval as a protocol.** `REQUIRE_APPROVAL` currently returns a refusal that names the
-reason. A real deployment needs a way to *grant* approval and resume — an elicitation
+reason. A real deployment needs a way to *grant* approval and resume, an elicitation
 round-trip, which MCP 2.x supports and this does not use yet.
 
 **Independent evaluation.** The corpus is mine, and that is the standard weakness of a
-self-built benchmark (§6.6). Scoring against a corpus somebody else wrote — or having
-someone try to get a payload past it — would be worth more than any additional rule.
+self-built benchmark (§6.6). Scoring against a corpus somebody else wrote, or having
+someone try to get a payload past it, would be worth more than any additional rule.
 
 ## 7.6 What I would tell someone starting this
 
@@ -94,7 +94,7 @@ Three things that were not obvious at the start:
 
 1. **The benign half is the hard half.** I expected to spend the time writing attacks.
    Almost all the difficulty was in the near-misses, and they are what forced every
-   interesting design decision — shape over vocabulary, four actions instead of two,
+   interesting design decision, shape over vocabulary, four actions instead of two,
    demotion, skipping unknown schema keywords.
 
 2. **Keep uncertainty in one place.** Eight controls with decidable answers and one that
@@ -104,5 +104,4 @@ Three things that were not obvious at the start:
 
 3. **Measure the strawman.** The keyword filter is what a team actually builds. Without
    it in the table, "92.3% caught" sounds impressive and says nothing about whether the
-   extra machinery was worth writing. With it, the interesting number is not the recall —
-   it is the 38.9% false-block rate that the extra machinery removes.
+   extra machinery was worth writing. With it, the interesting number is not the recall, it is the 38.9% false-block rate that the extra machinery removes.

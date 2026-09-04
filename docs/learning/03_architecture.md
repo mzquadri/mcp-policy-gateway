@@ -34,7 +34,7 @@ Stages exist because the same text means different things depending on when it a
 
 | Stage | Trigger | Refusal costs | Controls |
 |---|---|---|---|
-| `DISCOVERY` | `tools/list` relayed | Nothing — the tool just does not appear | shadowing, injection |
+| `DISCOVERY` | `tools/list` relayed | Nothing, the tool just does not appear | shadowing, injection |
 | `REQUEST` | before forwarding a call | The call does not happen | allowlist, schema, sandbox, budget, secrets, egress, approval |
 | `RESPONSE` | before returning a result | The result is lost | injection, secrets, egress, budget |
 
@@ -55,7 +55,7 @@ class Control(Protocol):
 It returns `Finding`s. It does not mutate anything, cannot see other controls' findings,
 and cannot stop the chain. Three consequences, all deliberate:
 
-1. **Independently testable.** A control is a pure function of `(event, context)` — the
+1. **Independently testable.** A control is a pure function of `(event, context)`, the
    budget control is the one exception and says so.
 2. **Independently scoreable.** "What does this control catch" has an answer.
 3. **Ordering-independent.** Because everything runs, the numbers do not depend on the
@@ -74,13 +74,13 @@ turns a log line into an investigation.
 
 Allow/deny is the obvious design and it is too coarse.
 
-- **ALLOW** — nothing to say.
-- **SANITISE** — the payload is removable and the rest of the content is worth keeping.
+- **ALLOW**, nothing to say.
+- **SANITISE**, the payload is removable and the rest of the content is worth keeping.
   A credential in an otherwise legitimate document: redact the credential, keep the
   document. Refusing throws away the document too.
-- **REQUIRE_APPROVAL** — the call may well be legitimate but is irreversible. Blocking it
+- **REQUIRE_APPROVAL**, the call may well be legitimate but is irreversible. Blocking it
   pushes operators toward disabling the control; asking a human is the honest answer.
-- **BLOCK** — do not forward.
+- **BLOCK**, do not forward.
 
 Having four is what keeps the false-block rate low. A gateway that can only allow or deny
 must deny a document with one credential in it.
@@ -135,8 +135,7 @@ model burns budget rediscovering a rule nobody told it about.
 ## 3.7 One gap found by building it
 
 The demo initially hid the poisoned `read_document` at discovery and then happily executed
-a direct call to it. Hiding a name from a listing is not the same as making it uncallable
-— a client with the name from an earlier session can still ask, and the request-stage
+a direct call to it. Hiding a name from a listing is not the same as making it uncallable, a client with the name from an earlier session can still ask, and the request-stage
 controls have no idea the declaration was rejected because they only see the call.
 
 The gateway now records withheld tools and refuses calls to them. It is a small fix and a

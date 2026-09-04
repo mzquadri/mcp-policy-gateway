@@ -3,24 +3,23 @@
 Control by control: what it is, why it is needed, how it works, what else was possible,
 and how it is tested.
 
-## 4.1 `tool_allowlist` — deny by default
+## 4.1 `tool_allowlist`, deny by default
 
 **What.** Refuses any tool not explicitly permitted.
 
 **Why.** Most of what an agent must never do, it must never do because the tool is not
-available — not because a scanner recognised a payload. This is the least clever control
+available, not because a scanner recognised a payload. This is the least clever control
 here and probably the most valuable.
 
 **How.** Exact string match against `context.allowed_tools`. An empty set denies
 everything.
 
 **Alternatives.** A denylist, which fails the moment a server adds a tool. Prefix or glob
-matching, which is how `read_document_v2` sneaks past a rule written for `read_document`
-— corpus case `allow-002`.
+matching, which is how `read_document_v2` sneaks past a rule written for `read_document`, corpus case `allow-002`.
 
 **Test.** `test_allowlist_is_exact_match_not_prefix`, `test_empty_allowlist_denies_everything`.
 
-## 4.2 `tool_shadowing` — name collisions across servers
+## 4.2 `tool_shadowing`, name collisions across servers
 
 **What.** Flags a server declaring a tool name another server already claimed.
 
@@ -32,10 +31,10 @@ suspicious; only the collision reveals it.
 existing name blocks; the same owner re-declaring is fine, because reconnects re-declare
 everything.
 
-**Test.** `test_shadowing_allows_same_server_redeclaring` is the important one — keying on
+**Test.** `test_shadowing_allows_same_server_redeclaring` is the important one, keying on
 any collision would break every restart.
 
-## 4.3 `destructive_action` — hold, do not refuse
+## 4.3 `destructive_action`, hold, do not refuse
 
 **What.** Irreversible tools need a recorded approval.
 
@@ -45,9 +44,9 @@ control does not force that choice.
 
 **How.** Membership in `context.destructive_tools`, cleared by `context.approved`.
 
-**Test.** `test_recorded_approval_opens_the_gate` — a gate that never opens is just a block.
+**Test.** `test_recorded_approval_opens_the_gate`, a gate that never opens is just a block.
 
-## 4.4 `schema_conformance` — check the server's own contract
+## 4.4 `schema_conformance`, check the server's own contract
 
 **What.** Validates arguments against the schema the server published.
 
@@ -57,7 +56,7 @@ the whole exchange. Type confusion (`path` as a list) and smuggled keys (`__prot
 cheap to catch here and expensive later.
 
 **How.** The subset servers actually publish: `type`, `required`, `enum`,
-`additionalProperties`. Unknown keywords are **skipped, not guessed** — a deliberate bias
+`additionalProperties`. Unknown keywords are **skipped, not guessed**, a deliberate bias
 toward false negatives in a control whose false positives would break honest calls.
 
 One subtlety: `bool` subclasses `int` in Python, so `isinstance(True, int)` is `True`. A
@@ -69,7 +68,7 @@ the spec that appears in practice; a production deployment might well use one.
 
 **Test.** `test_bool_is_not_an_integer`, `test_unknown_schema_keyword_is_skipped_not_guessed`.
 
-## 4.5 `path_sandbox` — the one decidable control
+## 4.5 `path_sandbox`, the one decidable control
 
 **What.** Confines path-like arguments to a root.
 
@@ -80,7 +79,7 @@ common attack against them.
 
 1. **Absolute path, either grammar.** `PurePosixPath` *and* `PureWindowsPath`. A
    POSIX-only check treats `C:\Windows\...` as relative and joins it to the root, which is
-   a real bug — corpus case `path-003`.
+   a real bug, corpus case `path-003`.
 2. **Resolve and compare.** `(root / value).resolve().is_relative_to(root)`. Resolution
    handles `..`; the comparison must be on resolved paths rather than string prefixes, or
    `/srv/docs-evil` passes a check rooted at `/srv/docs`.
@@ -91,10 +90,10 @@ This is the only control with a decidable ground truth: a path either escapes or
 not. Everything else here involves judgement.
 
 **Test.** Parametrised over four escapes and three benign paths containing `..`. The
-benign ones matter more — blocking on the substring would break a large share of honest
+benign ones matter more, blocking on the substring would break a large share of honest
 calls.
 
-## 4.6 `budget` — limits that hold when nothing looks wrong
+## 4.6 `budget`, limits that hold when nothing looks wrong
 
 **What.** Call counts, output bytes, and a per-tool circuit breaker.
 
@@ -107,8 +106,8 @@ matters because its benchmark numbers are order-dependent where the others' are 
 
 The circuit breaker is deliberately separate from the rate limit:
 
-- A **rate limit** says *not this fast* — a statement about the client.
-- A **breaker** says *this tool keeps failing, stop asking* — a statement about the
+- A **rate limit** says *not this fast*, a statement about the client.
+- A **breaker** says *this tool keeps failing, stop asking*, a statement about the
   downstream server's health.
 
 Conflating them gives a limiter that punishes a healthy tool for a burst and keeps
@@ -117,7 +116,7 @@ hammering a broken one. A success resets the failure run.
 **Test.** `test_circuit_opens_after_consecutive_failures_and_then_refuses`,
 `test_success_resets_the_failure_run`.
 
-## 4.7 `secret_disclosure` — credentials in both directions
+## 4.7 `secret_disclosure`, credentials in both directions
 
 **What.** Finds credentials in outgoing arguments and in returned content.
 
@@ -125,7 +124,7 @@ hammering a broken one. A success resets the failure run.
 reach.
 
 **How.** Shape-and-prefix patterns: `AKIA...`, `ghp_...`, `sk-...`, PEM headers, and an
-assignment form. The action is **SANITISE**, not BLOCK — the document around the
+assignment form. The action is **SANITISE**, not BLOCK, the document around the
 credential is usually legitimate.
 
 **Alternatives.** Entropy-based detection sounds more general and fires on every SHA-256
@@ -135,7 +134,7 @@ missed, and it is scored as a miss.
 
 **Test.** `test_sha256_digest_is_not_treated_as_a_secret` pins the trade.
 
-## 4.8 `egress_control` — where data is being sent
+## 4.8 `egress_control`, where data is being sent
 
 **What.** Flags hosts outside the allowlist, in arguments or in content.
 
@@ -152,13 +151,13 @@ decided anything.
 
 **Test.** `test_egress_blocks_suffix_confusion`, `test_egress_says_nothing_without_a_policy`.
 
-## 4.9 `instruction_injection` — the only judgement call
+## 4.9 `instruction_injection`, the only judgement call
 
 **What.** Finds instructions addressed to the model inside untrusted text.
 
 **Why.** The core threat, and the only control that cannot be right by construction.
 
-**How — two halves.**
+**How it works, in two halves.**
 
 **Imperative shape, not vocabulary.** Each rule needs a verb directed at the reader *and*
 an object that only makes sense if the reader is an assistant:
@@ -185,7 +184,7 @@ assert it.
 **Two rules were narrowed by the corpus, not by taste:**
 
 - `mandatory_tool_precondition` originally fired on "Before using the archive tool you
-  must install the client library" — an install guide. Requiring a *call* verb after the
+  must install the client library", an install guide. Requiring a *call* verb after the
   obligation separates it from "you must first call read_document".
 - `treat_content_as_instructions` was added because `inject-005` got through: a
   decode-and-obey directive has no "instructions:" header and nothing to override.
@@ -205,7 +204,7 @@ into a log file has created a second copy of the data in a place with weaker acc
 control than the original.
 
 The summarising happens inside the trace writer rather than relying on callers having
-redacted first — a writer that trusts its callers is one refactor away from leaking.
+redacted first, a writer that trusts its callers is one refactor away from leaking.
 
 **Test.** `test_trace_records_digests_not_payloads` asserts that the AWS key and the
 injection string from the hostile server appear nowhere in the trace file.

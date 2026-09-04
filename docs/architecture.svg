@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 716" width="1080" height="716" font-family="Segoe UI, -apple-system, Helvetica, Arial, sans-serif">
+  <rect width="1080" height="716" fill="#FFFFFF"/>
+  <defs><style>
+    .h { fill:#111827; font-size:19px; font-weight:600; }
+    .s { fill:#6B7280; font-size:12.5px; }
+    .lbl { fill:#111827; font-size:13.5px; font-weight:600; }
+    .sub { fill:#6B7280; font-size:11px; }
+    .mono { font-family:ui-monospace,Consolas,monospace; font-size:11px; fill:#374151; }
+    .cap { fill:#9CA3AF; font-size:11.5px; }
+    .stage { fill:#111827; font-size:12.5px; font-weight:600; }
+  </style></defs>
+  <text class="h" x="30" y="36" text-anchor="start">Policy enforcement at the protocol boundary</text>
+  <text class="s" x="30" y="58" text-anchor="start">The client speaks ordinary MCP to the gateway; the gateway speaks ordinary MCP to the real server. Both sides are unmodified.</text>
+  <rect x="30" y="96" width="190" height="66" rx="9" fill="#F9FAFB" stroke="#E5E7EB" stroke-width="1.4"/>
+  <text class="lbl" x="125.0" y="121" text-anchor="middle">MCP client</text>
+  <text class="sub" x="125.0" y="141" text-anchor="middle">your agent or IDE</text>
+  <line x1="224" y1="129" x2="270.0" y2="129.0" stroke="#6B7280" stroke-width="1.7"/>
+  <polygon points="278,129 270.0,133.6 270.0,124.4" fill="#6B7280"/>
+  <text class="cap" x="251.0" y="120.0" text-anchor="middle">MCP</text>
+  <rect x="282" y="96" width="216" height="66" rx="9" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.4"/>
+  <text class="lbl" x="390.0" y="121" text-anchor="middle">Policy gateway</text>
+  <text class="sub" x="390.0" y="141" text-anchor="middle">nine controls</text>
+  <line x1="502" y1="129" x2="548.0" y2="129.0" stroke="#6B7280" stroke-width="1.7"/>
+  <polygon points="556,129 548.0,133.6 548.0,124.4" fill="#6B7280"/>
+  <text class="cap" x="529.0" y="120.0" text-anchor="middle">MCP</text>
+  <rect x="560" y="96" width="216" height="66" rx="9" fill="#F9FAFB" stroke="#E5E7EB" stroke-width="1.4"/>
+  <text class="lbl" x="668.0" y="121" text-anchor="middle">Downstream server</text>
+  <text class="sub" x="668.0" y="141" text-anchor="middle">source not required</text>
+  <line x1="390" y1="166" x2="390.0" y2="188.0" stroke="#9CA3AF" stroke-width="1.7"/>
+  <polygon points="390,196 385.4,188.0 394.6,188.0" fill="#9CA3AF"/>
+  <rect x="282" y="200" width="216" height="56" rx="9" fill="#F9FAFB" stroke="#E5E7EB" stroke-width="1.4"/>
+  <text class="lbl" x="390.0" y="225" text-anchor="middle">Trace (JSONL)</text>
+  <text class="sub" x="390.0" y="245" text-anchor="middle">decision, rules, timing</text>
+  <text class="stage" x="30" y="300" text-anchor="start">Three points where untrusted material enters</text>
+  <rect x="30" y="318" width="250" height="74" rx="9" fill="#FFFBEB" stroke="#D97706" stroke-width="1.4"/>
+  <text class="lbl" x="155.0" y="343" text-anchor="middle">Tool declarations</text>
+  <text class="sub" x="155.0" y="363" text-anchor="middle">prose the server writes about itself</text>
+  <text class="stage" x="300" y="344" text-anchor="start">discovery</text>
+  <text class="mono" x="300" y="364" text-anchor="start">tool shadowing, instruction injection</text>
+  <text class="cap" x="300" y="382" text-anchor="start">2 controls run here</text>
+  <rect x="30" y="410" width="250" height="74" rx="9" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.4"/>
+  <text class="lbl" x="155.0" y="435" text-anchor="middle">Call arguments</text>
+  <text class="sub" x="155.0" y="455" text-anchor="middle">built by a model, sent to the server</text>
+  <text class="stage" x="300" y="436" text-anchor="start">request</text>
+  <text class="mono" x="300" y="456" text-anchor="start">tool allowlist, destructive action, schema conformance, path sandbox, budget, secret disclosure, egress control</text>
+  <text class="cap" x="300" y="474" text-anchor="start">7 controls run here</text>
+  <rect x="30" y="502" width="250" height="74" rx="9" fill="#ECFDF5" stroke="#059669" stroke-width="1.4"/>
+  <text class="lbl" x="155.0" y="527" text-anchor="middle">Tool results</text>
+  <text class="sub" x="155.0" y="547" text-anchor="middle">content the server did not author</text>
+  <text class="stage" x="300" y="528" text-anchor="start">response</text>
+  <text class="mono" x="300" y="548" text-anchor="start">budget, secret disclosure, egress control, instruction injection</text>
+  <text class="cap" x="300" y="566" text-anchor="start">4 controls run here</text>
+  <line x1="30" y1="600" x2="1050" y2="600" stroke="#E5E7EB"/>
+  <text class="lbl" x="30" y="628" text-anchor="start">A control never decides alone</text>
+  <text class="cap" x="30" y="650" text-anchor="start">Each control reports findings. The engine combines them and the strongest action wins: allow, sanitise, hold for approval, or block.</text>
+  <text class="cap" x="30" y="669" text-anchor="start">Measured on 26 attacks and 18 benign near misses: 24 attacks caught, 2 legitimate calls wrongly blocked.</text>
+</svg>

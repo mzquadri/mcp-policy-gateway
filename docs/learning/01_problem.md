@@ -5,7 +5,7 @@
 The Model Context Protocol is a wire format that lets a language-model client use tools
 provided by a separate process. A *server* advertises tools; a *client* lists them, picks
 one, sends arguments, and gets a result back. It is JSON-RPC over stdio or HTTP, and the
-interesting part is not the transport — it is who is trusted.
+interesting part is not the transport, it is who is trusted.
 
 A minimal exchange:
 
@@ -27,9 +27,9 @@ worry about.
 
 Here the danger runs the other way, and it is not a parsing problem. Everything the
 server sends is **prose that a model reads and may act on**. A tool description is not a
-docstring the way a docstring is in Python — the client concatenates it into the prompt so
+docstring the way a docstring is in Python, the client concatenates it into the prompt so
 the model knows what the tool does. A tool result is not a return value the model
-inspects at arm's length — it is appended to the conversation.
+inspects at arm's length, it is appended to the conversation.
 
 So the server can write sentences into the model's context, and a model has no reliable
 way to tell a sentence that describes data from a sentence that instructs it. That is the
@@ -40,7 +40,7 @@ variants have their own names:
   reads once at discovery and puts in the prompt.
 - **Tool shadowing.** A second server declaring a tool name a first server already owns,
   so the client routes calls to the wrong place.
-- **Indirect prompt injection.** Instructions inside a tool's *result* — in a document the
+- **Indirect prompt injection.** Instructions inside a tool's *result*, in a document the
   server returned, which the server did not write and cannot vouch for.
 
 ## The three untrusted moments
@@ -71,15 +71,15 @@ there is nothing to scan yet.
 ## What this project asks
 
 > If you put an enforcement point at the protocol boundary, where all three moments are
-> visible, how much does each control actually buy — and what does it cost in false
+> visible, how much does each control actually buy, and what does it cost in false
 > refusals?
 
 Two halves, and the second is the one people skip. A control that blocks every attack and
 also refuses one in three legitimate calls gets switched off in week two, at which point
 its real-world effectiveness is zero. So the measurement here always reports both:
 
-- **caught** — share of attacks handled
-- **false block** — share of legitimate traffic refused
+- **caught**, share of attacks handled
+- **false block**, share of legitimate traffic refused
 
 and the corpus is built so the second number is hard to get right. See
 [`05_evaluation.md`](05_evaluation.md).
@@ -97,4 +97,4 @@ and the corpus is built so the second number is hard to get right. See
   controls catches 92% of a representative corpus while refusing 11% of near-miss benign
   traffic, and here is the corpus so you can disagree.
 
-Next: [`02_foundations.md`](02_foundations.md) — the concepts and vocabulary.
+Next: [`02_foundations.md`](02_foundations.md), the concepts and vocabulary.

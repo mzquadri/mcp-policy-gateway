@@ -7,7 +7,7 @@ confused-deputy problem is, skip to §2.5.
 
 A language model receives one sequence of tokens. Instructions from the developer, the
 user's question, and data fetched from elsewhere all arrive in the same channel. There is
-no bit that marks a token as *data* rather than *instruction* — the separation is a
+no bit that marks a token as *data* rather than *instruction*, the separation is a
 convention the model learned, not a property of the input.
 
 Prompt injection is what happens when text that was supposed to be data is written so it
@@ -17,7 +17,7 @@ matters enormously:
 | | SQL injection | Prompt injection |
 |---|---|---|
 | Cause | Data concatenated into a command string | Data concatenated into a prompt |
-| Fix | Parameterised queries — a real channel separation | **No equivalent exists** |
+| Fix | Parameterised queries, a real channel separation | **No equivalent exists** |
 | Why | The parser can be told which bytes are data | The model has one channel by construction |
 
 There is no `PreparedStatement` for a prompt. Delimiters help and can be forged; system
@@ -25,7 +25,7 @@ prompts help and can be argued with. This is why defences are mitigations rather
 fixes, and why measuring them matters more than asserting them.
 
 **Direct** injection is the user typing it. **Indirect** injection is the interesting
-one: it arrives in content the system fetched — a document, a web page, a search result.
+one: it arrives in content the system fetched, a document, a web page, a search result.
 The user never sees it, and the person who wrote it may have planted it months earlier.
 
 ## 2.2 The confused deputy
@@ -41,8 +41,7 @@ database credentials. A document it reads can tell it what to do. The document h
 authority; the agent has all of it; and the agent cannot reliably tell the difference
 between its principal's instruction and a sentence in a file.
 
-This reframes the defence. You are not trying to make the model resistant to persuasion —
-that is a model-training problem and not one a proxy can solve. You are trying to ensure
+This reframes the defence. You are not trying to make the model resistant to persuasion, that is a model-training problem and not one a proxy can solve. You are trying to ensure
 the deputy's *authority is small enough* that being confused is survivable. That is what
 allowlists, sandboxes, budgets and approval gates are for, and it is why this project has
 eight boring controls and only one clever one.
@@ -50,7 +49,7 @@ eight boring controls and only one clever one.
 ## 2.3 Defence in depth, and why per-control numbers matter
 
 Layered defence is the standard answer. The trap is that "we have nine controls" is not a
-statement about security — nine controls that all catch the same thing are one control.
+statement about security, nine controls that all catch the same thing are one control.
 
 So the effectiveness table here reports controls independently: every control runs on
 every event, even after another has already blocked it. That costs a few microseconds and
@@ -61,14 +60,14 @@ controls short-circuit each other. See [`03_architecture.md`](03_architecture.md
 
 Standard classification vocabulary, mapped onto the problem.
 
-- **True positive** — an attack the gateway handled.
-- **False negative (miss)** — an attack that got through.
-- **False positive (false block)** — legitimate traffic refused.
-- **True negative** — legitimate traffic passed.
+- **True positive**, an attack the gateway handled.
+- **False negative (miss)**, an attack that got through.
+- **False positive (false block)**, legitimate traffic refused.
+- **True negative**, legitimate traffic passed.
 
-**Recall** = TP / (TP + FN) — the share of attacks caught. Reported as `caught`.
+**Recall** = TP / (TP + FN), the share of attacks caught. Reported as `caught`.
 
-**Precision** = TP / (TP + FP) — of everything flagged, how much was really an attack.
+**Precision** = TP / (TP + FP), of everything flagged, how much was really an attack.
 
 This project foregrounds recall and the **false block rate** rather than precision,
 because false block is the number that predicts whether the control survives. An operator
@@ -92,7 +91,7 @@ worth writing down:
 | Latency | ~100 µs | 100–1000 ms per call |
 | Explainability | Names the rule and the span | "The classifier said 0.87" |
 | Evasion | Rephrasing defeats it | Harder to evade by rephrasing |
-| Coverage of novelty | Poor — only known shapes | Better |
+| Coverage of novelty | Poor, only known shapes | Better |
 
 The last row is a real loss and it is not hidden: a paraphrased attack that avoids every
 pattern gets through, and `inject-006` in the corpus is exactly that case, kept as a
@@ -101,7 +100,7 @@ scored miss.
 The trade was made for the first three rows. A security control that cannot be re-run
 deterministically cannot be regression-tested, and one that costs a model call per tool
 result changes the economics of every agent that uses it. A production deployment would
-sensibly run both — patterns at the boundary for the cheap certain cases, a model for the
+sensibly run both, patterns at the boundary for the cheap certain cases, a model for the
 ambiguous remainder. That is written up in [`07_experiments.md`](07_experiments.md).
 
 ## 2.6 Repositories reviewed during selection

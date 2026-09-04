@@ -3,6 +3,12 @@
 Runtime policy enforcement for Model Context Protocol tool calls, and a deterministic
 benchmark that measures which controls actually stop which attacks.
 
+![Architecture](docs/architecture.svg)
+
+On a 44 case corpus the gateway catches 24 of 26 attacks and wrongly blocks 2 of 18
+legitimate calls. A keyword filter, the alternative teams actually reach for, catches 10
+and blocks 7. Every number here is reproduced by `python evaluation/benchmark.py`.
+
 ## The problem
 
 An MCP client hands a model a set of tools, calls them on the model's behalf, and feeds
@@ -14,7 +20,7 @@ untrusted at different times:
 2. **Call arguments.** Built by a model from a schema, then sent to a server that may or
    may not validate them.
 3. **Tool results.** Whatever comes back is read into context. It is a document, a search
-   result, a database row — content the server did not write and cannot vouch for.
+   result, a database row. It is content the server did not write and cannot vouch for.
 
 The security tooling that exists for MCP today is mostly **static scanners**: point them
 at a server, they read the declarations and report suspicious ones. That is worth doing
@@ -29,16 +35,6 @@ are visible, and then measures how much that is worth.
 An MCP server that fronts another MCP server. Your client connects to the gateway; the
 gateway connects to the real server. Both sides speak ordinary MCP, so it works with a
 server whose source you do not have.
-
-```
-  client  ──MCP──▶  policy gateway  ──MCP──▶  downstream server
-                    │
-                    ├─ discovery : inspect declarations before the client sees them
-                    ├─ request   : inspect arguments before the call is forwarded
-                    └─ response  : inspect results before they re-enter context
-                    │
-                    └─▶ trace (JSONL): decision, rules, timing, payload digests
-```
 
 Nine controls run at those three stages:
 
@@ -55,12 +51,14 @@ Nine controls run at those three stages:
 | `instruction_injection` | discovery, response | Whether text contains instructions aimed at the model. |
 
 A control never decides on its own. It reports findings; the engine combines them, and
-the strongest action wins — allow, sanitise, hold for approval, or block.
+the strongest action wins: allow, sanitise, hold for approval, or block.
 
 ## Results
 
 Deterministic. 44 cases, no model calls, no network. `python evaluation/benchmark.py`
-reproduces this table exactly on any machine.
+reproduces every rate in this table exactly on any machine. The decision-time column is
+the exception: it is a property of the machine it ran on, not of the system, and it moves
+by tens of microseconds between runs.
 
 | Configuration | Attacks caught | Benign refused | Benign untouched | Median decision |
 |---|---|---|---|---|
@@ -68,11 +66,15 @@ reproduces this table exactly on any machine.
 | **keyword filter** | 38.5% | 38.9% | 61.1% | 3 µs |
 | **gateway** | **92.3%** | **11.1%** | 77.8% | 117 µs |
 
+![What each option costs](docs/figures/01_tradeoff.png)
+
 The keyword filter is in there because it is the real alternative. "We added a filter" is
 what actually happens when a team decides to do something about prompt injection, and
 comparing only against *nothing* would flatter the result. It catches a third of the
 attacks and refuses two out of five legitimate calls, which is the profile of a control
 that gets switched off in week two.
+
+![Coverage by attack class](docs/figures/02_by_attack_class.png)
 
 Per control, on the same run:
 
@@ -88,6 +90,8 @@ Per control, on the same run:
 | `destructive_action` | 1 | 0 |
 | `budget` | 1 | 0 |
 
+![Per control contribution](docs/figures/03_controls.png)
+
 Every benign case that gets touched is touched by the one control that has to make a
 judgement call. The eight deterministic controls have no false positives on this corpus,
 which is the argument for keeping the judgement in exactly one place.
@@ -102,6 +106,8 @@ Four cases out of 44 are not handled, and all four were written before the contr
 | `secret-004` | A bare 64-hex-character credential | Catching it means flagging every SHA-256 digest in every document. The control keys on prefixes and assignment shape instead. |
 | `fp-known-001` | A runbook saying "ignore the previous instructions in section 3" | Genuine operator prose with the exact shape of an attack. There is no signal available that separates them. |
 | `fp-known-002` | Onboarding text asking someone to "show your system prompt" | Same problem. Internal documentation discusses prompts now. |
+
+![Where it fails](docs/figures/04_failures.png)
 
 The two false positives are the honest cost of the injection control, and they are the
 reason it is the only control allowed to be uncertain. Full write-up in
@@ -167,6 +173,16 @@ format and the CLI. Specifically:
   effectiveness table is not an artefact of ordering.
 - **Fail-closed proxying** over real stdio MCP, with a JSONL trace that stores digests
   rather than payloads.
+
+## Figures
+
+Generated from `assets/results.json` and the control registry, so they cannot describe a
+system the code does not have:
+
+```bash
+python scripts/figures/generate_diagram.py   # docs/architecture.svg
+python scripts/figures/generate_figures.py   # docs/figures/*.png
+```
 
 ## Documentation
 

@@ -203,9 +203,7 @@ def readme_rate_table() -> dict[str, tuple[str, str, str]]:
         # "gateway" is a substring of nothing else here, but "baseline" arrives
         # as "baseline (no gateway)", so the longest match wins.
         label = cells[0].lower()
-        matched = sorted(
-            (key for key in ROW_LABELS if key in label), key=len, reverse=True
-        )
+        matched = sorted((key for key in ROW_LABELS if key in label), key=len, reverse=True)
         if matched:
             table[ROW_LABELS[matched[0]]] = (cells[1], cells[2], cells[3])
     return table
@@ -241,6 +239,4 @@ def test_the_readme_states_the_corpus_size_it_was_run_on():
     assert f"{len(attacks)} attack" in text, (
         f"README does not state the {len(attacks)} attack cases"
     )
-    assert f"{len(benign)} benign" in text, (
-        f"README does not state the {len(benign)} benign cases"
-    )
+    assert f"{len(benign)} benign" in text, f"README does not state the {len(benign)} benign cases"

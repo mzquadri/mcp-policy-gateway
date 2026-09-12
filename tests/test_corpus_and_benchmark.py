@@ -12,6 +12,8 @@ it. A range fails when something has genuinely regressed.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from corpus import all_cases
 from evaluation.benchmark import (
@@ -160,3 +162,85 @@ def test_handled_semantics_are_asymmetric():
     assert not handled(attack, Decision(action=Action.SANITISE))
     assert handled(benign, Decision(action=Action.ALLOW))
     assert not handled(benign, Decision(action=Action.BLOCK))
+
+
+# ------------------------------------------------------------------ the README
+
+# The pinned bounds above are ranges on purpose, for the reason in the module
+# docstring. This is a different question and takes the opposite answer.
+#
+# The README prints a rate table and says the benchmark "reproduces every rate in
+# this table exactly on any machine". That is a claim about two published
+# artifacts agreeing, not a quality floor. An improvement to a control SHOULD
+# fail this test: the README is wrong the moment the benchmark moves, and both
+# belong in the same commit.
+#
+# The decision-time column is excluded. It is a property of the machine, which
+# the README says in the sentence above the table, and it differs between a
+# laptop and a CI runner by tens of microseconds.
+
+README = Path(__file__).resolve().parents[1] / "README.md"
+
+# The label the README gives each configuration, mapped to the name the
+# benchmark uses. Matching on a substring keeps the bold markers and the
+# parenthetical out of it.
+ROW_LABELS = {
+    "baseline": "baseline",
+    "keyword filter": "keyword",
+    "gateway": "gateway",
+}
+
+
+def readme_rate_table() -> dict[str, tuple[str, str, str]]:
+    """The three rate columns of the README table, keyed by configuration."""
+    table: dict[str, tuple[str, str, str]] = {}
+    for line in README.read_text(encoding="utf-8").splitlines():
+        if not line.startswith("|") or "%" not in line:
+            continue
+        cells = [c.strip().strip("*").strip() for c in line.strip("|").split("|")]
+        if len(cells) < 4:
+            continue
+        # "gateway" is a substring of nothing else here, but "baseline" arrives
+        # as "baseline (no gateway)", so the longest match wins.
+        label = cells[0].lower()
+        matched = sorted(
+            (key for key in ROW_LABELS if key in label), key=len, reverse=True
+        )
+        if matched:
+            table[ROW_LABELS[matched[0]]] = (cells[1], cells[2], cells[3])
+    return table
+
+
+def test_the_readme_table_is_the_benchmark(reports):
+    table = readme_rate_table()
+    assert set(table) == set(reports), (
+        f"README table lists {sorted(table)}, benchmark runs {sorted(reports)}"
+    )
+
+    for name, report in reports.items():
+        caught, refused, untouched = table[name]
+        assert caught == f"{report.caught * 100:.1f}%", (
+            f"{name} attacks caught: README says {caught}, benchmark says "
+            f"{report.caught * 100:.1f}%"
+        )
+        assert refused == f"{report.false_block * 100:.1f}%", (
+            f"{name} benign refused: README says {refused}, benchmark says "
+            f"{report.false_block * 100:.1f}%"
+        )
+        assert untouched == f"{report.clean * 100:.1f}%", (
+            f"{name} benign untouched: README says {untouched}, benchmark says "
+            f"{report.clean * 100:.1f}%"
+        )
+
+
+def test_the_readme_states_the_corpus_size_it_was_run_on():
+    text = README.read_text(encoding="utf-8")
+    attacks = [c for c in CASES if c.is_attack]
+    benign = [c for c in CASES if not c.is_attack]
+    assert f"{len(CASES)} cases" in text, f"README does not state {len(CASES)} cases"
+    assert f"{len(attacks)} attack" in text, (
+        f"README does not state the {len(attacks)} attack cases"
+    )
+    assert f"{len(benign)} benign" in text, (
+        f"README does not state the {len(benign)} benign cases"
+    )

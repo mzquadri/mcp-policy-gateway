@@ -21,12 +21,24 @@ attacker sent", "example:", "we detected"), the finding drops from BLOCK to SANI
 This trades recall for precision on purpose, and the benchmark reports both numbers so
 the trade is visible instead of asserted.
 
-It does not decode base64 or unescape nested encodings before matching. That is a known
-gap, it is measured in the evaluation, and it is written down in docs/learning/06.
+**Base64 is decoded, but only when it decodes to prose.** The earlier version matched
+raw text only, and `inject-006` - an override instruction with no plaintext around it -
+went through untouched. The objection to fixing it was sound: decoding every base64-
+looking span and re-scanning it would flag legitimate encoded attachments, and a control
+that blocks attachments is a control that gets switched off. So the decode is gated on
+what comes back. Bytes that are not valid UTF-8 are an attachment and are dropped. Text
+with no word breaks is a key or a digest, not a sentence. Only something that reads as
+language is scanned, and the finding is reported against the *encoded* span, because
+that is what is actually in the document.
+
+It still does not unescape nested or multi-layer encodings, which is written down in
+docs/learning/06 and kept in the corpus as a number rather than a sentence.
 """
 
 from __future__ import annotations
 
+import base64
+import binascii
 import re
 from collections.abc import Iterable
 
@@ -133,16 +145,65 @@ def _framed(text: str, span: tuple[int, int], window: int = 120) -> bool:
     return bool(_REPORTING.search(text[max(0, span[0] - window) : span[0]]))
 
 
+#: A base64 run long enough to hide a sentence in. Shorter spans are identifiers.
+_B64_SPAN = re.compile(r"\b[A-Za-z0-9+/]{24,}={0,2}")
+
+#: Decoded text has to look like this much like language before it is re-scanned.
+_MIN_DECODED_CHARS = 16
+_MIN_PRINTABLE_SHARE = 0.95
+_MIN_LETTER_SHARE = 0.55
+
+
+def _decoded_prose(blob: str) -> str | None:
+    """Decode a base64 span, and return it only if what came back reads as language.
+
+    Every rejection here is a legitimate document the control must not touch:
+
+    - Bad padding or a bad alphabet: not base64 at all, just a long token.
+    - Not valid UTF-8: an image, an archive, a signature. This is the case the
+      original objection was about, and it is the cheapest one to rule out.
+    - No word break: a key, a hash, a session id. Long, textual, and not a sentence.
+    - Mostly punctuation or digits: structured data, not an instruction.
+
+    What survives is text somebody could have written, which is the only kind of
+    payload the imperative rules can say anything useful about.
+    """
+    if len(blob) % 4:
+        return None
+    try:
+        raw = base64.b64decode(blob, validate=True)
+    except (binascii.Error, ValueError):
+        return None
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+
+    if len(text) < _MIN_DECODED_CHARS or " " not in text:
+        return None
+    printable = sum(1 for ch in text if ch.isprintable() or ch in "\n\r\t")
+    if printable / len(text) < _MIN_PRINTABLE_SHARE:
+        return None
+    letters = sum(1 for ch in text if ch.isalpha())
+    if letters / len(text) < _MIN_LETTER_SHARE:
+        return None
+    return text
+
+
 class InstructionInjection:
     """Finds instructions addressed to the model inside untrusted text."""
 
     name = "instruction_injection"
     stages = frozenset({Stage.DISCOVERY, Stage.RESPONSE})
 
-    def __init__(self, *, demote_when_framed: bool = True) -> None:
+    def __init__(self, *, demote_when_framed: bool = True, decode_base64: bool = True) -> None:
         #: Exposed so the evaluation can measure precision and recall with it on and
         #: off, rather than asserting that the demotion helps.
         self.demote_when_framed = demote_when_framed
+        #: Same reason. The decode closes inject-006, and the question worth answering
+        #: is what it costs on the benign set, not whether it catches the one case it
+        #: was written for.
+        self.decode_base64 = decode_base64
 
     def inspect(self, event: Event, context: Context) -> Iterable[Finding]:
         text = event.text
@@ -177,3 +238,40 @@ class InstructionInjection:
                     ),
                     span=span,
                 )
+
+        if self.decode_base64:
+            yield from self._encoded(text, protected)
+
+    def _encoded(self, text: str, protected: list[tuple[int, int]]) -> Iterable[Finding]:
+        """Run the same rules over base64 spans that decode to prose.
+
+        One finding per blob. A payload that trips three rules is still one hidden
+        instruction, and reporting it three times would make the benchmark's
+        per-control counts read as three separate catches.
+        """
+        for match in _B64_SPAN.finditer(text):
+            decoded = _decoded_prose(match.group())
+            if decoded is None:
+                continue
+
+            for rule, pattern, severity in _IMPERATIVE:
+                if not pattern.search(decoded):
+                    continue
+                span = match.span()
+                # The framing test reads the text around the blob, not the blob, so an
+                # advisory quoting a payload in a fenced block still demotes.
+                framed = self.demote_when_framed and (
+                    _inside(span, protected) or _framed(text, span)
+                )
+                yield Finding(
+                    control=self.name,
+                    rule=f"{rule}_encoded",
+                    action=Action.SANITISE if framed else Action.BLOCK,
+                    severity=Severity.LOW if framed else severity,
+                    detail=(
+                        f"Base64 span decodes to instruction-shaped text ({rule})"
+                        + (" inside reporting or quoted context." if framed else ".")
+                    ),
+                    span=span,
+                )
+                break

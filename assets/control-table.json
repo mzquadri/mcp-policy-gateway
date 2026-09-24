@@ -1,8 +1,8 @@
 [
   {
     "control": "instruction_injection",
-    "attacks_caught": 15,
-    "benign_touched": 4
+    "attacks_caught": 16,
+    "benign_touched": 5
   },
   {
     "control": "egress_control",

@@ -123,7 +123,10 @@ def test_gateway_headline_numbers_hold(reports):
 def test_the_only_unhandled_cases_are_the_documented_ones(reports):
     """A new miss should fail here rather than quietly lower the headline number."""
     unhandled = {o.case_id for o in reports["gateway"].outcomes if not o.ok}
-    assert unhandled == {"inject-006", "secret-004", "fp-known-001", "fp-known-002"}
+    # inject-006 was on this list until the injection control learned to decode
+    # base64 spans that come back as prose. The rest are still open and are
+    # explained in the README, each for a reason rather than for want of trying.
+    assert unhandled == {"secret-004", "fp-known-001", "fp-known-002"}
 
 
 def test_deterministic_controls_have_no_false_positives(reports):

@@ -1,19 +1,18 @@
 {
-  "corpus_cases": 44,
+  "corpus_cases": 47,
   "attacks": 26,
-  "benign": 18,
+  "benign": 21,
   "attack_classes": 10,
-  "gateway_caught": 0.9231,
-  "gateway_false_block": 0.1111,
+  "gateway_caught": 0.9615,
+  "gateway_false_block": 0.0952,
   "keyword_caught": 0.3846,
-  "keyword_false_block": 0.3889,
+  "keyword_false_block": 0.3333,
   "baseline_caught": 0.0,
-  "median_micros": 99.6,
+  "median_micros": 214.9,
   "controls": 9,
   "unhandled": [
     "fp-known-001",
     "fp-known-002",
-    "inject-006",
     "secret-004"
   ]
 }

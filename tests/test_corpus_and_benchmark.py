@@ -22,6 +22,7 @@ from evaluation.benchmark import (
     control_effectiveness,
     handled,
     run,
+    wilson,
 )
 
 from mcp_policy_gateway.engine import default_controls
@@ -232,6 +233,64 @@ def test_the_readme_table_is_the_benchmark(reports):
             f"{name} benign untouched: README says {untouched}, benchmark says "
             f"{report.clean * 100:.1f}%"
         )
+
+
+def test_wilson_stays_a_probability_where_the_normal_approximation_does_not():
+    """The two ends are exactly where this corpus sits, and where Wald breaks.
+
+    At 25 of 26 the normal approximation puts the upper bound past 1, and at 0 of
+    21 it collapses to a point and claims twenty-one observations carry no
+    uncertainty. Both are the reason the interval here is Wilson's.
+    """
+    low, high = wilson(25, 26)
+    assert 0.0 < low < 0.962 < high < 1.0
+
+    low, high = wilson(0, 21)
+    assert low == 0.0
+    assert high > 0.10, "an interval from 21 observations cannot be a single point"
+
+    low, high = wilson(21, 21)
+    assert high == 1.0
+    assert low < 0.90
+
+    # Empty sets have no interval rather than a misleading one.
+    assert wilson(0, 0) == (0.0, 0.0)
+
+
+def test_a_wider_corpus_narrows_the_interval():
+    """The same rate, more cases, a tighter bound. Otherwise it is not measuring size."""
+    narrow = wilson(24, 26)
+    wide = wilson(240, 260)
+    assert (wide[1] - wide[0]) < (narrow[1] - narrow[0]) / 2
+
+
+def test_the_readme_interval_table_is_the_benchmark(reports):
+    """The README may not quote an interval the benchmark does not produce.
+
+    The rate table was already pinned. The intervals decide what the surrounding
+    prose is allowed to conclude from it, which makes them the more consequential
+    half: the README reads the recall gap as real and the false-refusal gap as
+    unestablished, and that reading only holds while these endpoints do.
+    """
+    text = " ".join(README.read_text(encoding="utf-8").split())
+    for name, report in reports.items():
+        for which in ("caught", "false_block"):
+            low, high = report.interval(which)
+            rendered = f"[{low * 100:.1f}%, {high * 100:.1f}%]"
+            assert rendered in text, (
+                f"{name} {which}: benchmark computes {rendered}, "
+                "which appears nowhere in the README"
+            )
+
+    gateway, keyword = reports["gateway"], reports["keyword"]
+    caught_gap = gateway.interval("caught")[0] > keyword.interval("caught")[1]
+    assert caught_gap, "the README says the recall intervals do not overlap"
+
+    refusal_overlap = gateway.interval("false_block")[1] > keyword.interval("false_block")[0]
+    assert refusal_overlap, (
+        "the false-refusal intervals no longer overlap; the README says they do, and "
+        "should be rewritten to claim the gap rather than this assertion relaxed"
+    )
 
 
 def test_the_readme_states_the_corpus_size_it_was_run_on():

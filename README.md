@@ -74,6 +74,33 @@ comparing only against *nothing* would flatter the result. It catches a third of
 attacks and refuses one in three legitimate calls, which is the profile of a control that
 gets switched off in week two.
 
+### How much of that gap the corpus can support
+
+Every rate above is a count over 26 attacks or 21 benign cases. At those sizes a
+percentage to one decimal place reads as more precise than it is, so the benchmark also
+prints a 95% Wilson interval for each. Wilson rather than the usual normal approximation,
+which at 25 of 26 puts the upper bound past 1 and at 0 of 21 claims no uncertainty at all.
+
+| Configuration | Attacks caught | Benign refused |
+|---|---|---|
+| **baseline** (no gateway) | 0.0% [0.0%, 12.9%] | 0.0% [0.0%, 15.5%] |
+| **keyword filter** | 38.5% [22.4%, 57.5%] | 33.3% [17.2%, 54.6%] |
+| **gateway** | 96.2% [81.1%, 99.3%] | 9.5% [2.7%, 28.9%] |
+
+The two columns say different things and should be read differently.
+
+**On recall the gap is real.** The gateway's [81.1%, 99.3%] does not come near the keyword
+filter's [22.4%, 57.5%]. Twenty-six cases are few, but not so few that this separation
+could be luck.
+
+**On false refusals it is not established.** [2.7%, 28.9%] against [17.2%, 54.6%] overlap
+across most of their width. The gateway refused two legitimate calls where the filter
+refused seven, and on 21 cases that is the direction the evidence points rather than a
+finding to quote. Claiming otherwise would be the error this project exists to avoid.
+
+The intervals cover sampling error only: how much these rates would move on another 47
+cases written the same way, and nothing about real traffic.
+
 ![Coverage by attack class](docs/figures/02_by_attack_class.png)
 
 Per control, on the same run:

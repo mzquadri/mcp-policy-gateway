@@ -178,6 +178,37 @@ class Outcome:
     micros: float = 0.0
 
 
+#: 95%, two-sided.
+Z = 1.959963984540054
+
+
+def wilson(successes: int, total: int, z: float = Z) -> tuple[float, float]:
+    """A 95% interval for a proportion, by the Wilson score method.
+
+    Every rate in this table is a count over 26 attacks or 21 benign cases, and a
+    rate from twenty-odd cases carries an interval wide enough to change what may
+    be claimed from it. Printing 96.2% alone invites the reader to treat it as
+    precise, which at n=26 it is not.
+
+    Wilson rather than the textbook normal approximation, because the approximation
+    fails exactly where this corpus sits. At 25 of 26 it puts the upper bound past
+    1, which is not a probability, and at 0 of 21 it collapses to the single point
+    zero, claiming no uncertainty at all from twenty-one observations. Wilson stays
+    inside [0, 1] at every count and keeps a sensible width at the ends.
+
+    This covers sampling error only. It answers how much the number would move on
+    another 26 cases drawn the same way, not how the gateway would do on real
+    traffic, which no corpus of this size can answer.
+    """
+    if total == 0:
+        return (0.0, 0.0)
+    p = successes / total
+    denominator = 1 + z**2 / total
+    centre = (p + z**2 / (2 * total)) / denominator
+    spread = z * ((p * (1 - p) / total + z**2 / (4 * total**2)) ** 0.5) / denominator
+    return (max(0.0, centre - spread), min(1.0, centre + spread))
+
+
 @dataclass(slots=True)
 class Report:
     configuration: str
@@ -187,20 +218,38 @@ class Report:
         return [o for o in self.outcomes if o.label == label]
 
     @property
-    def caught(self) -> float:
+    def caught_count(self) -> tuple[int, int]:
         attacks = self._subset("attack")
-        return sum(o.ok for o in attacks) / len(attacks) if attacks else 0.0
+        return sum(o.ok for o in attacks), len(attacks)
+
+    @property
+    def false_block_count(self) -> tuple[int, int]:
+        benign = self._subset("benign")
+        return sum(o.action == Action.BLOCK.value for o in benign), len(benign)
+
+    @property
+    def clean_count(self) -> tuple[int, int]:
+        benign = self._subset("benign")
+        return sum(o.action == Action.ALLOW.value for o in benign), len(benign)
+
+    @property
+    def caught(self) -> float:
+        successes, total = self.caught_count
+        return successes / total if total else 0.0
 
     @property
     def false_block(self) -> float:
-        benign = self._subset("benign")
-        blocked = sum(o.action == Action.BLOCK.value for o in benign)
-        return blocked / len(benign) if benign else 0.0
+        successes, total = self.false_block_count
+        return successes / total if total else 0.0
 
     @property
     def clean(self) -> float:
-        benign = self._subset("benign")
-        return sum(o.action == Action.ALLOW.value for o in benign) / len(benign) if benign else 0.0
+        successes, total = self.clean_count
+        return successes / total if total else 0.0
+
+    def interval(self, which: str) -> tuple[float, float]:
+        """The 95% Wilson interval for one of the three rates."""
+        return wilson(*getattr(self, f"{which}_count"))
 
     @property
     def median_micros(self) -> float:
@@ -289,6 +338,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             f"{name:<14}{report.caught:>8.1%}{report.false_block:>14.1%}"
             f"{report.clean:>13.1%}{report.median_micros:>9.0f}us"
         )
+
+    # Printed under the table rather than beside each rate, because three intervals
+    # on one line is unreadable and the widths are the point: at these counts they
+    # are wide enough that the ranking, not the gap, is what the corpus supports.
+    print("\n95% Wilson intervals, sampling error only")
+    print(f"{'configuration':<14}{'caught':>20}{'false block':>20}")
+    for name, report in reports.items():
+        low_c, high_c = report.interval("caught")
+        low_f, high_f = report.interval("false_block")
+        print(f"{name:<14}{f'[{low_c:.1%}, {high_c:.1%}]':>20}{f'[{low_f:.1%}, {high_f:.1%}]':>20}")
 
     print("\nper-control, gateway configuration")
     print(f"{'control':<26}{'attacks caught':>16}{'benign touched':>16}")

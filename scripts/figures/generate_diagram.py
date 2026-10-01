@@ -1,8 +1,11 @@
 """The architecture diagram, drawn from the control registry and the benchmark.
 
 The README describes the gateway with an ASCII block. That works in a terminal
-and not much else, so this emits the same idea as an SVG with an explicit light
-ground, readable wherever GitHub renders it.
+and not much else, so this emits the same idea as an SVG, readable wherever
+GitHub renders it. The background is transparent and comes in a light and a
+dark palette, so the diagram does not show up as a white rectangle on a dark
+GitHub theme -- the README picks between them with a theme-conditional
+<picture> element.
 
 Control names and stages come from the registry itself, and the corpus counts
 from assets/results.json, so the picture cannot describe controls the code does
@@ -10,7 +13,7 @@ not have.
 
     python scripts/figures/generate_diagram.py
 
-Output: docs/architecture.svg
+Output: docs/architecture.svg, docs/architecture-dark.svg
 """
 
 from __future__ import annotations
@@ -22,20 +25,35 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO / "src"))
 
-INK = "#111827"
-MUTED = "#6B7280"
-FAINT = "#9CA3AF"
-HAIR = "#E5E7EB"
-BLUE, BLUE_BG = "#2563EB", "#EFF6FF"
-GREEN, GREEN_BG = "#059669", "#ECFDF5"
-AMBER, AMBER_BG = "#D97706", "#FFFBEB"
-GREY_BG = "#F9FAFB"
 FONT = "Segoe UI, -apple-system, Helvetica, Arial, sans-serif"
 
-STAGE_COLOUR = {
-    "discovery": (AMBER_BG, AMBER),
-    "request": (BLUE_BG, BLUE),
-    "response": (GREEN_BG, GREEN),
+PALETTES = {
+    "light": {
+        "ink": "#111827",
+        "muted": "#6B7280",
+        "faint": "#9CA3AF",
+        "hair": "#E5E7EB",
+        "blue": "#2563EB",
+        "blue_bg": "#EFF6FF",
+        "green": "#059669",
+        "green_bg": "#ECFDF5",
+        "amber": "#D97706",
+        "amber_bg": "#FFFBEB",
+        "grey_bg": "#F9FAFB",
+    },
+    "dark": {
+        "ink": "#E6EDF3",
+        "muted": "#8B949E",
+        "faint": "#6E7681",
+        "hair": "#30363D",
+        "blue": "#58A6FF",
+        "blue_bg": "#0D2847",
+        "green": "#3FB950",
+        "green_bg": "#0D2818",
+        "amber": "#D29922",
+        "amber_bg": "#2D2410",
+        "grey_bg": "#161B22",
+    },
 }
 
 
@@ -68,8 +86,8 @@ def box(x, y, w, h, fill, edge, title, lines):
     return s
 
 
-def arrow(x1, y1, x2, y2, label=None, colour=None):
-    c = colour or MUTED
+def arrow(x1, y1, x2, y2, muted, label=None, colour=None):
+    c = colour or muted
     head = 8.0
     dx, dy = x2 - x1, y2 - y1
     ln = max((dx * dx + dy * dy) ** 0.5, 1e-6)
@@ -87,26 +105,28 @@ def arrow(x1, y1, x2, y2, label=None, colour=None):
     return s
 
 
-def main() -> int:
-    stages = controls_by_stage()
-    results = json.loads((REPO / "assets" / "results.json").read_text("utf-8"))
-    corpus = results["corpus"]
-    gateway = results["configurations"]["gateway"]
+def render(theme: str, stages: dict[str, list[str]], corpus: dict, gateway: dict) -> str:
+    p = PALETTES[theme]
+    stage_colour = {
+        "discovery": (p["amber_bg"], p["amber"]),
+        "request": (p["blue_bg"], p["blue"]),
+        "response": (p["green_bg"], p["green"]),
+    }
+    mono_colour = "#9CA3AF" if theme == "dark" else "#374151"
 
     W, H = 1080, 716
     s = (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
         f'width="{W}" height="{H}" font-family="{FONT}">\n'
-        f'  <rect width="{W}" height="{H}" fill="#FFFFFF"/>\n'
         f"  <defs><style>\n"
-        f"    .h {{ fill:{INK}; font-size:19px; font-weight:600; }}\n"
-        f"    .s {{ fill:{MUTED}; font-size:12.5px; }}\n"
-        f"    .lbl {{ fill:{INK}; font-size:13.5px; font-weight:600; }}\n"
-        f"    .sub {{ fill:{MUTED}; font-size:11px; }}\n"
+        f"    .h {{ fill:{p['ink']}; font-size:19px; font-weight:600; }}\n"
+        f"    .s {{ fill:{p['muted']}; font-size:12.5px; }}\n"
+        f"    .lbl {{ fill:{p['ink']}; font-size:13.5px; font-weight:600; }}\n"
+        f"    .sub {{ fill:{p['muted']}; font-size:11px; }}\n"
         f"    .mono {{ font-family:ui-monospace,Consolas,monospace; font-size:11px; "
-        f"fill:#374151; }}\n"
-        f"    .cap {{ fill:{FAINT}; font-size:11.5px; }}\n"
-        f"    .stage {{ fill:{INK}; font-size:12.5px; font-weight:600; }}\n"
+        f"fill:{mono_colour}; }}\n"
+        f"    .cap {{ fill:{p['faint']}; font-size:11.5px; }}\n"
+        f"    .stage {{ fill:{p['ink']}; font-size:12.5px; font-weight:600; }}\n"
         f"  </style></defs>\n"
     )
     s += text(30, 36, "Policy enforcement at the protocol boundary", "h")
@@ -118,14 +138,18 @@ def main() -> int:
         "s",
     )
 
-    s += box(30, 96, 190, 66, GREY_BG, HAIR, "MCP client", ["your agent or IDE"])
-    s += arrow(224, 129, 278, 129, "MCP")
-    s += box(282, 96, 216, 66, BLUE_BG, BLUE, "Policy gateway", ["nine controls"])
-    s += arrow(502, 129, 556, 129, "MCP")
-    s += box(560, 96, 216, 66, GREY_BG, HAIR, "Downstream server", ["source not required"])
+    s += box(30, 96, 190, 66, p["grey_bg"], p["hair"], "MCP client", ["your agent or IDE"])
+    s += arrow(224, 129, 278, 129, p["muted"], "MCP")
+    s += box(282, 96, 216, 66, p["blue_bg"], p["blue"], "Policy gateway", ["nine controls"])
+    s += arrow(502, 129, 556, 129, p["muted"], "MCP")
+    s += box(
+        560, 96, 216, 66, p["grey_bg"], p["hair"], "Downstream server", ["source not required"]
+    )
     # The trace is written by the gateway, not by the server behind it.
-    s += arrow(390, 166, 390, 196, None, FAINT)
-    s += box(282, 200, 216, 56, GREY_BG, HAIR, "Trace (JSONL)", ["decision, rules, timing"])
+    s += arrow(390, 166, 390, 196, p["muted"], None, p["faint"])
+    s += box(
+        282, 200, 216, 56, p["grey_bg"], p["hair"], "Trace (JSONL)", ["decision, rules, timing"]
+    )
 
     s += text(30, 300, "Three points where untrusted material enters", "stage")
     y = 318
@@ -135,7 +159,7 @@ def main() -> int:
         ("response", "Tool results", "content the server did not author"),
     ]
     for stage, title, why in lanes:
-        fill, edge = STAGE_COLOUR[stage]
+        fill, edge = stage_colour[stage]
         s += box(30, y, 250, 74, fill, edge, title, [why])
         names = stages.get(stage, [])
         s += text(300, y + 26, stage, "stage")
@@ -143,7 +167,7 @@ def main() -> int:
         s += text(300, y + 64, f"{len(names)} controls run here", "cap")
         y += 92
 
-    s += f'  <line x1="30" y1="{y + 6}" x2="{W - 30}" y2="{y + 6}" stroke="{HAIR}"/>\n'
+    s += f'  <line x1="30" y1="{y + 6}" x2="{W - 30}" y2="{y + 6}" stroke="{p["hair"]}"/>\n'
     caught = round(gateway["caught"] * corpus["attacks"])
     blocked = round(gateway["false_block"] * corpus["benign"])
     s += text(30, y + 34, "A control never decides alone", "lbl")
@@ -162,13 +186,25 @@ def main() -> int:
     for chunk in s.split("<text")[1:]:
         body = chunk.split(">", 1)[1].split("</text>")[0]
         assert "\n" not in body, "newline inside a text element"
+    return s
 
-    out = REPO / "docs" / "architecture.svg"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(s, encoding="utf-8", newline="\n")
-    print(f"  wrote {out.relative_to(REPO).as_posix()}")
-    for stage, names in stages.items():
-        print(f"    {stage:<10} {len(names)} controls: {', '.join(names)}")
+
+def main() -> int:
+    stages = controls_by_stage()
+    results = json.loads((REPO / "assets" / "results.json").read_text("utf-8"))
+    corpus = results["corpus"]
+    gateway = results["configurations"]["gateway"]
+
+    names = {"light": "architecture.svg", "dark": "architecture-dark.svg"}
+    for theme, filename in names.items():
+        svg = render(theme, stages, corpus, gateway)
+        out = REPO / "docs" / filename
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(svg, encoding="utf-8", newline="\n")
+        print(f"  wrote {out.relative_to(REPO).as_posix()}")
+
+    for stage, stage_names in stages.items():
+        print(f"    {stage:<10} {len(stage_names)} controls: {', '.join(stage_names)}")
     return 0
 
 

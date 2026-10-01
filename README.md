@@ -3,7 +3,11 @@
 Runtime policy enforcement for Model Context Protocol tool calls, and a deterministic
 benchmark that measures which controls actually stop which attacks.
 
-![Architecture](docs/architecture.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/architecture-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/architecture.svg">
+  <img src="docs/architecture.svg" alt="Architecture: MCP client to policy gateway to downstream server, with a JSONL trace">
+</picture>
 
 On a 47 case corpus the gateway catches 25 of 26 attacks and wrongly blocks 2 of 21
 legitimate calls. A keyword filter, the alternative teams actually reach for, catches 10

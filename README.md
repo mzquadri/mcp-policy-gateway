@@ -157,6 +157,45 @@ plaintext, and nothing about reading one encoding layer deeper helps with a sent
 meaning depends on who is being addressed. Full write-up in
 [`docs/learning/06_failures.md`](docs/learning/06_failures.md).
 
+## Scored against a corpus I did not write
+
+Everything above is measured on 47 cases I wrote, which is the standard weakness of a
+self-built benchmark. So the gateway was also run against [MCPTox](https://github.com/zhiqiangwang4/MCPTox-Benchmark)
+(AAAI 2026), 485 poisoned tool declarations harvested from real MCP servers by people who
+had never seen this project.
+
+| | caught | 95% Wilson |
+|---|---|---|
+| my corpus, 26 attacks | 96.2% | [81.1%, 99.3%] |
+| MCPTox, 485 declarations, as the gateway stood | **11.3%** | [8.8%, 14.5%] |
+| MCPTox, after the two changes it prompted | **39.8%** | [35.5%, 44.2%] |
+
+The first number is the useful one. `mandatory_tool_precondition` bounded the gap between
+"before" and the obligation at 40 characters, which fits how *I* write a case and not how
+anyone else does; 72 of the 103 missed declarations carrying that pair exceeded it. A second
+attack class — a declaration claiming priority over the user, then coercing an argument
+value — had no rule at all. Neither could have been found on 47 cases of mine.
+
+The internal numbers did not move through either change, including the benign cases that
+caused that rule to be narrowed in the first place.
+
+**39.8% should not be read as generalisation.** Most of the gain is one rule, and the phrase
+it keys on appears in 0% of their first two generators and 35% of the third. It is one
+generator's opening sentence. 292 of 485 are still missed and the three generators disagree
+at 29.9%, 44.8% and 39.1%. These rates also are not comparable to the ones in their paper:
+MCPTox scores whether a *model complies*, this scores whether a *control fires*.
+
+Nothing of theirs is redistributed here — they publish no licence, so the corpus is pinned
+by commit and digest and fetched at evaluation time. `make check` and `make bench` stay
+offline.
+
+```bash
+make bench-external     # fetches once, then deterministic
+```
+
+Full write-up, including what it does not establish, in
+[`docs/learning/08_external_validation.md`](docs/learning/08_external_validation.md).
+
 ## Run it
 
 ```bash

@@ -88,6 +88,13 @@ round-trip, which MCP 2.x supports and this does not use yet.
 self-built benchmark (§6.6). Scoring against a corpus somebody else wrote, or having
 someone try to get a payload past it, would be worth more than any additional rule.
 
+> Done, against MCPTox, in [§8](08_external_validation.md). It was worth more than any
+> additional rule: recall on 485 declarations I did not write was 11.3% against 96.2% here,
+> and the two causes — a distance bound fitted to my own prose, and an attack class with no
+> rule at all — were not findable on 47 cases of mine. The same section is now the argument
+> for a *second* external corpus, since most of the recovered recall turned out to ride on
+> one generator's phrasing.
+
 ## 7.6 What I would tell someone starting this
 
 Three things that were not obvious at the start:

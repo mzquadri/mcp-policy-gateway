@@ -99,6 +99,36 @@ _IMPERATIVE = [
         Severity.HIGH,
     ),
     (
+        "hidden_markup",
+        # From MCP-Guard's hidden_rules.json, rule hidden_tags_001
+        # (github.com/GenTelLab/MCP-Guard, configs/detectors/hidden_rules.json), which
+        # matches "<hidden>.*?</hidden>". Taken rather than invented: it is a channel
+        # that hides text from whoever reads the declaration while leaving it in the
+        # string the client concatenates into context, and it is not a shape any of the
+        # rules here covered.
+        #
+        # Widened from their literal <hidden> to the tag names that do the same job. The
+        # span is the whole element, so SANITISE removes the payload with it.
+        re.compile(
+            r"<\s*(hidden|invisible|secret|internal)\s*>.*?<\s*/\s*\1\s*>",
+            re.I | re.S,
+        ),
+        Severity.HIGH,
+    ),
+    (
+        "output_control",
+        # From MCP-Guard's hidden_rules.json, rule output_control_001, which matches
+        # "output\s+(?:only|just)\s+". An instruction constraining what the model may
+        # say, which is how a poisoned declaration suppresses the evidence of what it
+        # just did - the same end as conceal_from_user by a different route.
+        #
+        # Their pattern is kept as-is. It does not fire on "Outputs only the first N
+        # lines", because `output\s+` wants whitespace where the plural puts an 's', and
+        # that near-miss is pinned by a test.
+        re.compile(r"\boutput\s+(?:only|just)\s+", re.I),
+        Severity.MEDIUM,
+    ),
+    (
         "declaration_priority_claim",
         # A declaration asserting that it outranks the person making the request. No
         # honest tool description needs to say this, and it is the opening move of the

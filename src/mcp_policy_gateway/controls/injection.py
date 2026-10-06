@@ -91,9 +91,66 @@ _IMPERATIVE = [
         # innocence; the sentence boundary is doing the real work, since [^.\n] cannot
         # cross a full stop. The bound is now wide enough to reach across a clause and
         # still confined to one sentence.
+        # "use" was missing from the consequent, which is the most ordinary English word
+        # for invoking a tool. ATR-2026-01302 lists "use [tool name]" among its action
+        # directives, and every one of MSB's response-stage payloads is written that way:
+        # "please do the following first: Please use write_file tool". The verb list was
+        # mine; this one is theirs.
         re.compile(
             r"\b(before|prior\s+to)\b[^.\n]{0,120}?\b(you\s+must|always|first)\b"
-            r"[^.\n]{0,60}?\b(call|invoke|execute|run)\b",
+            r"[^.\n]{0,60}?\b(call|invoke|execute|run|use)\b",
+            re.I,
+        ),
+        Severity.HIGH,
+    ),
+    (
+        "fake_completion_directive",
+        # ATR-2026-01302, "Fake Tool Result Prefix - Injected Instruction via Simulated
+        # Completion" (agentthreatrule.org). A completion or error marker, then mandatory
+        # language, then a directive verb. The frame is the attack: a tool-result shape is
+        # read as trusted context, so an instruction wearing one inherits that trust.
+        #
+        # This is MSB's false_error type, which their paper measures at a 39.21% average
+        # attack success rate, and the reason the gateway caught none of their
+        # response-stage payloads.
+        #
+        # The span may cross a full stop, unlike most rules here, because the marker is
+        # usually its own sentence - "Status: completed. You must now follow ...". Three
+        # signals in sequence carry that; the false positives their rule documents are
+        # completion markers with no directive after them, which stay quiet.
+        re.compile(
+            r"(?:\b(?:task|operation|action)\s+(?:complete|completed|finished)\b"
+            r"|\bstatus\s*:\s*(?:completed|complete|success)\b"
+            r"|\bresult\s*:\s*success\b"
+            r"|\[\s*tool\s+output\s*\]"
+            r"|\"?\berror\b\"?\s*:)"
+            r"[\s\S]{0,60}?\b(?:you\s+must|mandatory|must\s+strictly|immediately)\b"
+            r"[\s\S]{0,40}?\b(?:adhere|follow|execute|perform|use|call|invoke|run)\b",
+            re.I,
+        ),
+        Severity.HIGH,
+    ),
+    (
+        "fake_authority_message",
+        # ATR-2026-01751, "Indirect Prompt Injection: Fake-Authority Task Abort", together
+        # with MSB's User Impersonation type. Content arriving in a tool result that
+        # claims to be the person using the agent.
+        #
+        # The claim is the whole signal and it needs no corroboration: a tool result has
+        # no way to be the user, so saying so is never anything else. The INFORMATION
+        # block and the "important message from me" framing do need a directive after
+        # them, because their rule documents the bare word as a false positive - a page
+        # using INFORMATION as a heading is not an attack, and the tag form is what
+        # separates them.
+        re.compile(
+            r"\bi\s+am\s+the\s+user\b"
+            r"|\bnew\s+user\s+query\s*:"
+            r"|<\s*INFORMATION\s*>[\s\S]{0,200}?"
+            r"\b(?:please\s+do|you\s+must|do\s+the\s+following|immediately\s+stop"
+            r"|stop\s+what|reply\s+with|respond\s+with)\b"
+            r"|\bimportant\s+message\s+from\s+(?:me|the\s+user|user)\b[\s\S]{0,200}?"
+            r"\b(?:please\s+do|you\s+must|do\s+the\s+following|immediately\s+stop"
+            r"|stop\s+what|reply\s+with|respond\s+with|finish)\b",
             re.I,
         ),
         Severity.HIGH,

@@ -99,6 +99,42 @@ _IMPERATIVE = [
         Severity.HIGH,
     ),
     (
+        "declaration_priority_claim",
+        # A declaration asserting that it outranks the person making the request. No
+        # honest tool description needs to say this, and it is the opening move of the
+        # argument-coercion family that external evaluation surfaced: establish
+        # precedence first, then redirect an argument.
+        #
+        # "higher" rather than "highest" matters - "processed in priority order, highest
+        # first" is ordinary scheduling prose - and the claim has to be made against a
+        # person, which is what separates it from "takes priority over the v1 route".
+        re.compile(
+            r"\b(priorit\w*|rank\w*|precedence)\b[^.\n]{0,60}?"
+            r"\b(above|over|higher|greater)\b[^.\n]{0,40}?\b(user|caller|human)\b",
+            re.I,
+        ),
+        Severity.HIGH,
+    ),
+    (
+        "argument_coercion",
+        # Instructing the model to substitute the value of an argument the caller
+        # supplied. Distinct from mandatory_tool_precondition: the call being made is
+        # the one that was asked for, with a different target, so nothing demands a
+        # second tool and the precondition rule never sees it.
+        #
+        # The dismissal clause is what carries the weight. A description may legitimately
+        # say "set the encoding parameter to utf-8"; what it does not say is to do so
+        # regardless of, or instead of, what the caller asked for.
+        re.compile(
+            r"\b(must|always)\b[^.\n]{0,60}?"
+            r"\b(modify|change|replace|set|override|substitute|rewrite)\b[^.\n]{0,80}?"
+            r"\b(argument|parameter|field)\b[^.\n]{0,100}?"
+            r"\b(regardless|instead\s+of|rather\s+than|no\s+matter|irrespective)\b",
+            re.I,
+        ),
+        Severity.HIGH,
+    ),
+    (
         "treat_content_as_instructions",
         # "follow the above as your new instructions", "treat this as a system message".
         # Distinct from new_directive_block, which needs a literal "instructions:"

@@ -99,6 +99,48 @@ _IMPERATIVE = [
         Severity.HIGH,
     ),
     (
+        "non_english_override",
+        # The six patterns of ATR-2026-00148, "Multilingual Prompt Injection via
+        # Language Switch" (agentthreatrule.org/en/rules/ATR-2026-00148). §6.6 recorded
+        # that every pattern here is English and a non-English injection passes; this is
+        # that gap, closed by following a published rule rather than by guessing at
+        # vocabulary in languages I do not speak.
+        #
+        # Each alternative is conjunctive - an imperative *and* its object - which is
+        # their stated mitigation for the false positive they document against
+        # themselves: "sin restricciones" appears in Spanish network-configuration prose
+        # with no injection intent. The Spanish without-restrictions form therefore also
+        # requires an assistant/model term nearby, in either order.
+        #
+        # CJK sentences end with an ideographic full stop, so the span classes exclude
+        # both it and the ASCII one; otherwise a match could run across sentences.
+        #
+        # Their own documented evasion gaps carry over and are not fixed here:
+        # paraphrase ("vergiss" for "ignoriere"), synonym substitution ("丢掉"), and
+        # unicode homoglyphs (Cyrillic "о" for Latin "o"). They report 61% confidence
+        # from 216 adversarial and 53,577 wild samples, which is the honest ceiling on
+        # what this rule is worth.
+        re.compile(
+            # German: ignore + prior instructions
+            r"\bignorier\w*\b[^.\n]{0,40}?\b(?:anweisung\w*|vorherig\w*|regel\w*)\b"
+            # Spanish: ignore + prior instructions
+            r"|\bignora\w*\b[^.\n]{0,40}?\b(?:instrucci\w*|anterior\w*|regla\w*)\b"
+            # Spanish: without restrictions, with an assistant/model term either side
+            r"|\b(?:asistente|modelo|inteligencia\s+artificial)\b[^.\n]{0,40}?"
+            r"\bsin\s+(?:restriccion\w*|restricci\w*|limitacion\w*|filtro\w*)"
+            r"|\bsin\s+(?:restriccion\w*|restricci\w*|limitacion\w*|filtro\w*)"
+            r"[^.\n]{0,40}?\b(?:asistente|modelo|inteligencia\s+artificial)\b"
+            # Chinese: ignore + restrictions/instructions
+            r"|忽略[^.。\n]{0,20}?(?:限制|指令|规则|约束)"
+            # Chinese: without + restrictions
+            r"|(?:没有|无)[^.。\n]{0,20}?(?:限制|约束)"
+            # Japanese: unrestricted + AI/assistant
+            r"|制限のない[^.。\n]{0,20}?(?:AI|アシスタント|助手|モデル)",
+            re.I,
+        ),
+        Severity.HIGH,
+    ),
+    (
         "hidden_markup",
         # From MCP-Guard's hidden_rules.json, rule hidden_tags_001
         # (github.com/GenTelLab/MCP-Guard, configs/detectors/hidden_rules.json), which

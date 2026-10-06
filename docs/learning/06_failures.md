@@ -127,7 +127,11 @@ image is out of scope entirely.
 on case order, unlike the other eight. The benchmark rebuilds the engine per case to keep
 this contained, which also means it under-tests session-level exhaustion.
 
-**Localisation.** All patterns are English. A non-English injection passes.
+**Localisation.** All patterns were English, and a non-English injection passed. Partly
+addressed in §8.9 by adopting ATR-2026-00148, which covers override phrasing in German,
+Spanish, Chinese and Japanese. Partly, because that rule documents its own evasion gaps —
+paraphrase, synonym substitution, unicode homoglyphs — and reports 61% confidence. Every
+other language still passes, and no corpus here exercises any of it.
 
 **The corpus is mine.** I wrote both the attacks and the controls, which is the standard
 weakness of a self-built benchmark. The mitigations are that ground truth was written

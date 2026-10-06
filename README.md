@@ -168,7 +168,7 @@ had never seen this project.
 |---|---|---|
 | my corpus, 26 attacks | 96.2% | [81.1%, 99.3%] |
 | MCPTox, 485 declarations, as the gateway stood | **11.3%** | [8.8%, 14.5%] |
-| MCPTox, after the two changes it prompted | **39.8%** | [35.5%, 44.2%] |
+| MCPTox, after the changes it prompted | **49.5%** | [45.1%, 53.9%] |
 
 The first number is the useful one. `mandatory_tool_precondition` bounded the gap between
 "before" and the obligation at 40 characters, which fits how *I* write a case and not how
@@ -188,11 +188,19 @@ That includes the `fetch` server's own description, which tells the model it was
 refuse and tell the user this" and that it may now do otherwise. Official prose with the
 shape of an injection, and it passes.
 
-**39.8% should not be read as generalisation.** Most of the gain is one rule, and the phrase
-it keys on appears in 0% of their first two generators and 35% of the third. It is one
-generator's opening sentence. 292 of 485 are still missed and the three generators disagree
-at 29.9%, 44.8% and 39.1%. These rates also are not comparable to the ones in their paper:
-MCPTox scores whether a *model complies*, this scores whether a *control fires*.
+**49.5% should not be read as generalisation.** A large part of the gain is one rule whose
+trigger phrase appears in 0% of their first two generators and 35% of the third — one
+generator's opening sentence, not a property of tool poisoning. 245 of 485 are still missed
+and the three generators disagree at 29.9%, 45.4% and 59.6%. These rates also are not
+comparable to the ones in their paper: MCPTox scores whether a *model complies*, this scores
+whether a *control fires*.
+
+The changes that produced it came from reading published work rather than inventing rules:
+two detection rules transcribed from [MCP-Guard](https://github.com/GenTelLab/MCP-Guard),
+the localisation gap closed from threat rule ATR-2026-00148, and `argument_coercion`
+rebuilt as weighted scoring against a threshold after MCP-Guard's `shadow_rules.json` —
+which alone was worth ten points of recall at no false-positive cost. Both decision
+conventions are now reported, following [CASCADE](https://arxiv.org/abs/2604.17125).
 
 Nothing of theirs is redistributed here — they publish no licence, so the corpus is pinned
 by commit and digest and fetched at evaluation time. `make check` and `make bench` stay

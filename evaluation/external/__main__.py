@@ -132,16 +132,35 @@ def emit_benign(report: Report, per_server: dict[str, int]) -> None:
         print(f"  {server:<22} {count}{note}")
     print()
 
+    # CASCADE (arXiv:2604.17125) reports that the decision convention moves the headline
+    # more than the defence does: counting referrals as positives put its false-positive
+    # rate at 11.70%, counting only denials at 1.51%, on one run. So both conventions are
+    # printed here with the full action split underneath, rather than one number that
+    # silently picks a convention for the reader.
     blocked, n = report.false_block_count
     clean, _ = report.clean_count
     lo, hi = report.interval("false_block")
     touched = n - clean
-    print(f"blocked        {blocked}/{n}  {pct(report.false_block)}  [{pct(lo)}, {pct(hi)}]")
-    print(f"touched at all {touched}/{n}  {pct(touched / n) if n else '-'}")
+
+    counts: dict[str, int] = {}
+    for outcome in report.outcomes:
+        counts[outcome.action] = counts.get(outcome.action, 0) + 1
+
+    print("false positives, under both decision conventions")
+    print(f"  strict  (any action is a positive)   {touched}/{n}  {pct(touched / n) if n else '-'}")
+    print(
+        f"  lenient (only a block is a positive) {blocked}/{n}  {pct(report.false_block)}"
+        f"  [{pct(lo)}, {pct(hi)}]"
+    )
+    print()
+    print("action split")
+    for action in ("allow", "sanitise", "require_approval", "block"):
+        if action in counts:
+            print(f"  {action:<18} {counts[action]}")
     print()
 
     offenders = [o for o in report.outcomes if not o.ok]
-    print(f"false positives (any action on a real tool): {len(offenders)}")
+    print(f"declarations the gateway acted on at all: {len(offenders)}")
     for o in offenders:
         print(f"  {o.case_id:<44} {o.action:<10} {','.join(o.rules)}")
 

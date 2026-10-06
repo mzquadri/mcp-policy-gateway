@@ -121,7 +121,7 @@ The rules are kept because the behaviours are real whoever writes them. A descri
 claims precedence over the person making the request is an attack in any phrasing, and the
 tests that hold it are written in mine, not theirs.
 
-## 8.6 Where it stands
+## 8.6 Where that left it
 
 | Generator | caught | 95% Wilson |
 |---|---|---|
@@ -129,12 +129,12 @@ tests that hold it are written in mine, not theirs.
 | Template-2 | 82/183, 44.8% | [37.8%, 52.0%] |
 | Template-3 | 88/225, 39.1% | [33.0%, 45.6%] |
 
-292 of 485 are still missed. By their risk categories the spread is wide — Service
-Disruption 71.2%, Message Hijacking 6.7% — and the categories are theirs, so the low rows
-are the honest list of what this gateway does not see.
+292 of 485 still missed. The internal number did not move once, through either change. A
+corpus of 26 attacks could not have found either of these, and 47 cases of mine were never
+going to.
 
-The internal number did not move once, through either change. A corpus of 26 attacks could
-not have found either of these, and 47 cases of mine were never going to.
+§8.9 revisits all of this, because the two rules above were written by me from four
+samples, and that turned out to be the wrong way to get them.
 
 ## 8.7 The other half: real tools
 
@@ -203,3 +203,134 @@ flatters a false-positive rate exactly as dropping awkward attacks would flatter
 - **Nothing comparable to their paper.** Different question, different ground truth.
 - **Nothing about generalisation**, which §8.5 is the argument for: a second external attack
   corpus is now worth more than any further rule.
+
+## 8.9 Following the published work instead of inventing rules
+
+Everything up to §8.8 diagnosed well and then fixed badly. The measurement was sound —
+the 40-character bound was found by counting, not guessing — but the fixes were mine:
+I chose new distance bounds out of the air, and wrote two detection rules from reading
+four sample payloads. Meanwhile MCP-Guard, whose dataset §8.7 already uses, publishes its
+detectors; I had taken their data and ignored their rules.
+
+This section is what changed after reading the field first.
+
+### What the comparison with MCP-Guard showed
+
+Their `configs/detectors/hidden_rules.json` carries eight rules. Mapped against the nine
+here, the exchange runs both ways:
+
+| Theirs | Here | |
+|---|---|---|
+| `ignore_previous`, `role_switch`, `system_override` | `override_instructions`, `role_reassignment`, `reveal_system_prompt` | covered |
+| `encoded_content`, a `base64:` prefix | base64 decode gated on a prose heuristic | narrower here |
+| `special_chars`, zero-width | `_INVISIBLE`, which also covers the Unicode Tags block | wider here |
+| `output_control`, `hidden_tags` | — | **adopted, §8.9.1** |
+| `multilingual` | — | **adopted via a better source, §8.9.2** |
+
+Six rules here have no counterpart there, `mandatory_tool_precondition` among them. The
+point is not that one set is better. It is that the overlap was findable in an afternoon
+and I did not look.
+
+### 8.9.1 Two rules taken rather than written
+
+`hidden_markup` from their `hidden_tags_001`, `output_control` from their
+`output_control_001`, each citing the rule id. Measured on everything available:
+recall unchanged, false positives unchanged, internal unchanged. Neither fires on anything
+in MCPTox and neither misfires on 660 real declarations.
+
+They are kept anyway. Dropping a rule an expert implementation thinks worth having, because
+this particular corpus does not exercise it, is fitting to the corpus. **Unexercised, not
+useful** — the distinction matters and the table above should not be read as a win.
+
+### 8.9.2 The localisation gap, closed from a threat rule
+
+§6.6 recorded that every pattern here is English. Rather than guess at vocabulary in
+languages I do not speak, this follows ATR-2026-00148, *Multilingual Prompt Injection via
+Language Switch*: six patterns across German, Spanish, Chinese and Japanese, each
+conjunctive because that is their stated mitigation for the false positive they document
+against themselves — "sin restricciones" occurs in Spanish network-configuration prose.
+
+Their documented evasion gaps carry over unfixed: paraphrase, synonym substitution,
+unicode homoglyphs. They report 61% confidence. Nothing here measures any of it, because
+every corpus available is English.
+
+### 8.9.3 The rule shape was the real mistake
+
+`argument_coercion` was one conjunctive regex demanding an obligation, a mutation verb, a
+target noun and a dismissal clause in a single sentence. MCP-Guard's `shadow_rules.json`
+does it differently: independent signals, each weighted 2–3, summed against a threshold of
+4.0.
+
+Theirs is right, and the evidence was already in the data. Of the Template-3 declarations
+still getting past the gateway, **43 carried three of the four signals** and were missed
+only for want of the dismissal clause. A conjunction cannot express "enough evidence".
+
+| | external recall | Template-3 | false positives | internal |
+|---|---|---|---|---|
+| conjunctive regex | 39.8% | 39.1% | 0/660 | 96.2% / 9.5% |
+| scored, threshold 4.0 | **49.5%** [45.1%, 53.9%] | **59.6%** | 0/660 | unchanged |
+
+Ten points of recall at no measurable false-positive cost, from changing the shape of a
+rule rather than adding one.
+
+**On the constants**, which is where I would otherwise have guessed again. The threshold is
+theirs. The weights follow their principle that an unambiguous signal outscores a common
+one — a dismissal clause is what no honest description says; an obligation is near-universal
+in tool documentation — but the values are mine, so they are measured:
+
+| threshold | external recall | false positives |
+|---|---|---|
+| 3.0 | 51.8% | **1/660** |
+| 3.5 | 49.5% | 0/660 |
+| **4.0** | 49.5% | 0/660 |
+| 4.5 | 40.8% | 0/660 |
+
+4.0 sits at the safe end of a plateau. The single false positive at 3.0 is worth naming:
+the official filesystem server's `read_text_file`, blocked on *"Operates on the file as text
+regardless of extension"* — the dismissal signal alone reaching the bar. That is the
+argument for not letting it.
+
+### 8.9.4 Reporting both decision conventions
+
+CASCADE (arXiv:2604.17125) audits a layered local MCP defence and finds the decision
+convention moves the headline more than the defence does: counting referrals as positives
+gave 11.70% false positives, counting only denials gave 1.51%, on one run. It also reports
+that wrapper choice alone moved false positives from 21.2% to 3.2% — which is independent
+confirmation that MCPTox's three generators had to be reported separately rather than
+pooled.
+
+`REQUIRE_APPROVAL` is exactly a referral, so the external harness now prints both
+conventions and the full action split beneath them, instead of one number that picks a
+convention on the reader's behalf. On the current run every one of the 660 is `allow`, so
+the two conventions agree; the point is that they are shown agreeing rather than assumed to.
+
+### 8.9.5 What was not taken
+
+CASCADE's other two layers, embedding similarity and a local review model, are not adopted.
+Both would end the offline, no-dependency, deterministic guarantee that makes
+`evaluation/benchmark.py` reproduce byte-for-byte anywhere. That constraint is worth more
+than the recall they would add, and CASCADE's own ablation is a reason for caution: it
+reports the review model changing no binary outcome while converting 1,492 referrals into
+denials.
+
+### 8.9.6 Where it stands now
+
+| | caught | 95% Wilson |
+|---|---|---|
+| internal, 26 attacks | 96.2% | [81.1%, 99.3%] |
+| MCPTox, 485 declarations | **49.5%** | [45.1%, 53.9%] |
+| false positives, 660 real declarations | **0** | [0.0%, 0.6%] |
+
+| Generator | caught |
+|---|---|
+| Template-1 | 23/77, 29.9% |
+| Template-2 | 83/183, 45.4% |
+| Template-3 | 134/225, 59.6% |
+
+245 of 485 still missed, and the generators still disagree by thirty points. The internal
+corpus has not moved through any of this.
+
+The lesson is not that the gateway got better, though it did. It is that every improvement
+in this section came from reading what someone else had already published, and the
+measurement that made §8 worth writing came from scoring against someone else's corpus.
+Both are the same lesson, and §7.5 only got half of it.

@@ -188,25 +188,6 @@ _IMPERATIVE = [
         Severity.HIGH,
     ),
     (
-        "argument_coercion",
-        # Instructing the model to substitute the value of an argument the caller
-        # supplied. Distinct from mandatory_tool_precondition: the call being made is
-        # the one that was asked for, with a different target, so nothing demands a
-        # second tool and the precondition rule never sees it.
-        #
-        # The dismissal clause is what carries the weight. A description may legitimately
-        # say "set the encoding parameter to utf-8"; what it does not say is to do so
-        # regardless of, or instead of, what the caller asked for.
-        re.compile(
-            r"\b(must|always)\b[^.\n]{0,60}?"
-            r"\b(modify|change|replace|set|override|substitute|rewrite)\b[^.\n]{0,80}?"
-            r"\b(argument|parameter|field)\b[^.\n]{0,100}?"
-            r"\b(regardless|instead\s+of|rather\s+than|no\s+matter|irrespective)\b",
-            re.I,
-        ),
-        Severity.HIGH,
-    ),
-    (
         "treat_content_as_instructions",
         # "follow the above as your new instructions", "treat this as a system message".
         # Distinct from new_directive_block, which needs a literal "instructions:"
@@ -232,6 +213,42 @@ _IMPERATIVE = [
 
 #: Characters that render as nothing but survive into a model's context.
 _INVISIBLE = re.compile("[​-‏‪-‮⁠-⁤﻿\U000e0000-\U000e007f]")
+
+#: Argument coercion, scored rather than matched in one piece.
+#:
+#: This was a single conjunctive regex requiring an obligation, a mutation verb, a target
+#: noun and a dismissal clause all in one sentence. Scoring the signals independently
+#: against a threshold follows MCP-Guard's shadow_rules.json
+#: (github.com/GenTelLab/MCP-Guard), which weights each signal 2-3 and fires at 4.0
+#: rather than demanding one pattern carry everything.
+#:
+#: The conjunctive form was measurably too strict. Of the Template-3 declarations MCPTox
+#: still got past the gateway, 43 carried an obligation, a mutation verb and a target
+#: noun, and were missed only for want of the dismissal clause.
+#:
+#: Weights follow their principle that an unambiguous signal outscores a common one. A
+#: dismissal clause is the thing no honest description says, so it alone is most of the
+#: threshold; an obligation is near-universal in tool documentation, so it is worth
+#: least. Nothing fires on fewer than three signals.
+_COERCION_THRESHOLD = 4.0
+_COERCION_SIGNALS: tuple[tuple[str, re.Pattern[str], float], ...] = (
+    (
+        "dismissal",
+        re.compile(r"\b(regardless|instead\s+of|rather\s+than|no\s+matter|irrespective)\b", re.I),
+        3.0,
+    ),
+    (
+        "mutation",
+        re.compile(r"\b(modify|change|replace|override|substitute|rewrite|set)\b", re.I),
+        1.5,
+    ),
+    ("target", re.compile(r"\b(argument|parameter|field)\b", re.I), 1.5),
+    ("obligation", re.compile(r"\b(you\s+must|must|always)\b", re.I), 1.0),
+)
+
+#: Scoring is per sentence. Signals from different sentences are not evidence of each
+#: other, and summing across a full stop would let ordinary documentation accumulate.
+_SENTENCE = re.compile(r"[^.。\n]+")
 
 #: Framing that turns a demand into a report of a demand.
 _REPORTING = re.compile(
@@ -357,8 +374,39 @@ class InstructionInjection:
                     span=span,
                 )
 
+        yield from self._coercion(text, protected)
+
         if self.decode_base64:
             yield from self._encoded(text, protected)
+
+    def _coercion(self, text: str, protected: list[tuple[int, int]]) -> Iterable[Finding]:
+        """Score argument-coercion signals per sentence against a threshold."""
+        for sentence in _SENTENCE.finditer(text):
+            span = sentence.span()
+            fragment = sentence.group()
+
+            hits = [
+                (name, score)
+                for name, pattern, score in _COERCION_SIGNALS
+                if pattern.search(fragment)
+            ]
+            total = sum(score for _, score in hits)
+            if total < _COERCION_THRESHOLD:
+                continue
+
+            framed = self.demote_when_framed and (_inside(span, protected) or _framed(text, span))
+            yield Finding(
+                control=self.name,
+                rule="argument_coercion",
+                action=Action.SANITISE if framed else Action.BLOCK,
+                severity=Severity.LOW if framed else Severity.HIGH,
+                detail=(
+                    f"Argument coercion scored {total:g} of {_COERCION_THRESHOLD:g} "
+                    f"({', '.join(name for name, _ in hits)})"
+                    + (", inside reporting or quoted context." if framed else ".")
+                ),
+                span=span,
+            )
 
     def _encoded(self, text: str, protected: list[tuple[int, int]]) -> Iterable[Finding]:
         """Run the same rules over base64 spans that decode to prose.

@@ -128,6 +128,39 @@ REFERENCE_SERVERS: tuple[tuple[str, str, Source], ...] = (
     ),
 )
 
-ALL: tuple[Source, ...] = (MCPTOX, *(source for _, _, source in REFERENCE_SERVERS))
+#: MCP-Guard's evaluation set, used here for its benign half only.
+#:
+#: 1,053 rows of `description,Label`; the 621 Label-0 rows are real tool descriptions
+#: collected from server metadata, which is a far wider sample of real declarations than
+#: seven reference servers can give. The 432 malicious rows are deliberately not scored:
+#: they are shell payloads, SQL fragments, path traversal and harmful-content prompts,
+#: which are request-stage and content-policy concerns rather than poisoned declarations.
+#: See the note on `mcpguard_benign`.
+#:
+#: No LICENSE published, as with MCPTox. Fetched, cited, not redistributed.
+MCPGUARD_DEV = Source(
+    name="mcpguard-dev",
+    ref="4bc97790256280480cf827c0a0fdb85e86754dfb",
+    url=(
+        "https://raw.githubusercontent.com/GenTelLab/MCP-Guard/"
+        "4bc97790256280480cf827c0a0fdb85e86754dfb/test_data/dev.csv"
+    ),
+    sha256="b53588fd4390288d309b8489faef85cb207e31c6d2b062aab9382a98becc8667",
+    citation=(
+        "MCP-Guard: A Multi-Stage Defense-in-Depth Framework for Securing Model Context "
+        "Protocol in Agentic AI (arXiv:2508.10991), with MCP-AttackBench. "
+        "https://github.com/GenTelLab/MCP-Guard"
+    ),
+    licence=(
+        "No LICENSE published in the source repository; default copyright applies. "
+        "Fetched at evaluation time, cited, and not redistributed."
+    ),
+)
 
-__all__ = ["ALL", "MCPTOX", "REFERENCE_SERVERS"]
+ALL: tuple[Source, ...] = (
+    MCPTOX,
+    MCPGUARD_DEV,
+    *(source for _, _, source in REFERENCE_SERVERS),
+)
+
+__all__ = ["ALL", "MCPGUARD_DEV", "MCPTOX", "REFERENCE_SERVERS"]

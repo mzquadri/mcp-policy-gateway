@@ -29,6 +29,8 @@ sources.py.
 
 from __future__ import annotations
 
+import csv
+import io
 import re
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
@@ -151,9 +153,59 @@ def benign_cases(found: Iterable[Declaration], *, server: str) -> list[Case]:
     ]
 
 
+def mcpguard_benign(csv_text: str) -> list[Case]:
+    """The benign half of MCP-Guard's evaluation set.
+
+    1,053 rows of `description,Label`, of which 621 carry Label 0. Those are real tool
+    descriptions collected from MCP server metadata - "Cancels a crawl job.", "Deletes
+    keys from the Consul key-value store." - which is exactly what the gateway reads at
+    discovery, from far more servers than the seven reference ones.
+
+    **Only Label 0 is taken.** The 432 malicious rows are shell payloads
+    (`$(sleep 1 && echo vulnerable 1)`), SQL fragments (`'; DROP TABLE workflows; --`),
+    path traversal, and harmful-content prompts. Almost none of them is a poisoned tool
+    *declaration*; they are request-stage payloads and content-policy items. Scoring them
+    against discovery controls would measure the wrong thing and report a low number as
+    though it meant something, which is the category error this harness already refused
+    for MCPSecBench.
+
+    Blank descriptions are dropped rather than passed. An empty string satisfies every
+    control trivially, so counting it would pad the denominator and flatter the rate.
+    """
+    out: list[Case] = []
+    for index, row in enumerate(csv.DictReader(io.StringIO(csv_text))):
+        if (row.get("Label") or "").strip() != "0":
+            continue
+        description = (row.get("description") or "").strip()
+        if not description:
+            continue
+        out.append(
+            Case(
+                case_id=f"mcpguard-{index:04d}",
+                label="benign",
+                stage=Stage.DISCOVERY,
+                rationale=(
+                    "A real tool description from MCP-Guard's benign set, collected from "
+                    "server metadata. Any action against it is a false positive."
+                ),
+                expected=Action.ALLOW,
+                tool=f"tool_{index:04d}",
+                description=description,
+                server="mcpguard",
+            )
+        )
+    return out
+
+
 def harvest_all(sources: Sequence[tuple[str, str, str]]) -> dict[str, list[Declaration]]:
     """(server, language, source) triples -> declarations per server."""
     return {server: declarations(source, language=language) for server, language, source in sources}
 
 
-__all__ = ["Declaration", "benign_cases", "declarations", "harvest_all"]
+__all__ = [
+    "Declaration",
+    "benign_cases",
+    "declarations",
+    "harvest_all",
+    "mcpguard_benign",
+]

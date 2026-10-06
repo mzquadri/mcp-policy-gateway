@@ -180,12 +180,13 @@ The internal numbers did not move through either change, including the benign ca
 caused that rule to be narrowed in the first place.
 
 The benign half is external too, because recall without a false-positive rate is the shape
-of result this project criticises the keyword filter for. Scored against 39 real tool
-declarations harvested from the official MCP reference servers, the gateway blocks **0** and
-touches **0** — including the `fetch` server's own description, which tells the model it was
-"advised to refuse and tell the user this" and that it may now do otherwise. That is official
-prose with the shape of an injection, and it passes. On 39 cases the interval still reaches
-9.0%, so it shows the two new rules do not fire on ordinary tool prose, and not much more.
+of result this project criticises the keyword filter for. Scored against **660 real tool
+declarations** — harvested from the official MCP reference servers and from MCP-Guard's
+benign set — the gateway blocks **0** and touches **0**, interval [0.0%, 0.6%].
+
+That includes the `fetch` server's own description, which tells the model it was "advised to
+refuse and tell the user this" and that it may now do otherwise. Official prose with the
+shape of an injection, and it passes.
 
 **39.8% should not be read as generalisation.** Most of the gain is one rule, and the phrase
 it keys on appears in 0% of their first two generators and 35% of the third. It is one

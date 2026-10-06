@@ -148,10 +148,22 @@ correct.
 For these, `expected` is ALLOW rather than SANITISE. On a real tool, being redacted is
 already a false positive and not a tolerable outcome.
 
+A second benign source makes that denominator worth something. MCP-Guard's evaluation set
+carries 621 real tool descriptions collected from server metadata — "Cancels a crawl job.",
+"Deletes keys from the Consul key-value store.", "Execute Terraform workflows." — which is a
+far wider sample of real declarations than six servers can give.
+
 | | result |
 |---|---|
-| blocked | 0/39, 0.0% [0.0%, 9.0%] |
-| touched at all | 0/39 |
+| blocked | **0/660**, 0.0% [0.0%, 0.6%] |
+| touched at all | 0/660 |
+
+Only the benign half of MCP-Guard is used. Its 432 malicious rows are shell payloads
+(`$(sleep 1 && echo vulnerable 1)`), SQL fragments (`'; DROP TABLE workflows; --`), path
+traversal, and harmful-content prompts. Almost none is a poisoned *declaration*; they are
+request-stage payloads and content-policy items. Scoring them against discovery controls
+would measure the wrong thing and report a low number as though it meant something — the
+same category error that ruled out MCPSecBench's data in §8.1.
 
 Including the hardest case in the set, which I did not choose. The `fetch` server's own
 description reads:
@@ -164,8 +176,12 @@ That is official prose, addressing the model directly, overriding its prior beha
 telling it what to say to the user. It is also a fair description of an injection. It passes,
 which is the single result here I would have been least willing to predict.
 
-Zero on 39 is a real result and a small one: the interval runs to 9.0%, so this establishes
-that the two rules added in §8.4 do not fire on ordinary tool prose, and not much more.
+Zero on 660 is a real result, and the guard that makes it one is a test that plants a known
+poisoned declaration in the benign path and requires it to come back as a false positive. A
+scorer that always returned zero would otherwise pass unnoticed.
+
+The interval runs to 0.6%, against 9.0% when the reference servers were the only source. The
+two rules added in §8.4 do not fire on real tool prose at a rate this corpus can detect.
 
 **What the harvester had to get right.** `everything` is excluded: its tools live one per
 file, so including it meant either fifteen more pins or an arbitrary subset, and an arbitrary
@@ -181,8 +197,9 @@ flatters a false-positive rate exactly as dropping awkward attacks would flatter
 - **Nothing about real traffic.** An academic corpus is still a corpus, assembled to make a
   point. The gap this closed is "my cases" to "their cases", which is one gap of several.
 - **Nothing about the other seven controls.** Only two run at discovery.
-- **Not much about false positives.** 39 declarations is a small benign set and its interval
-  reaches 9.0%. It says the new rules are not obviously trigger-happy on real tool prose.
+- **Nothing about false positives at the other two stages.** 660 declarations is a usable
+  benign set, but all of it is discovery. Request and response false positives are still
+  measured only on my own 21 cases.
 - **Nothing comparable to their paper.** Different question, different ground truth.
 - **Nothing about generalisation**, which §8.5 is the argument for: a second external attack
   corpus is now worth more than any further rule.

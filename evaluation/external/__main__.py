@@ -26,9 +26,17 @@ for path in (str(ROOT / "src"), str(ROOT)):
 from evaluation.benchmark import DEFAULT_SCHEMAS, Report, run, wilson  # noqa: E402
 from evaluation.external.adapt import mcptox_cases  # noqa: E402
 from evaluation.external.fetch import ExternalCorpusError, load  # noqa: E402
-from evaluation.external.harvest import benign_cases, declarations  # noqa: E402
+from evaluation.external.harvest import (  # noqa: E402
+    benign_cases,
+    declarations,
+    mcpguard_benign,
+)
 from evaluation.external.score import ExternalReport, score  # noqa: E402
-from evaluation.external.sources import MCPTOX, REFERENCE_SERVERS  # noqa: E402
+from evaluation.external.sources import (  # noqa: E402
+    MCPGUARD_DEV,
+    MCPTOX,
+    REFERENCE_SERVERS,
+)
 
 from mcp_policy_gateway.engine import default_controls  # noqa: E402
 
@@ -96,24 +104,29 @@ def emit(result: ExternalReport) -> None:
 
 
 def benign() -> tuple[Report, dict[str, int]]:
-    """Score real declarations from the official reference servers."""
+    """Score real declarations: the reference servers, plus MCP-Guard's benign half."""
     cases = []
-    per_server: dict[str, int] = {}
+    per_source: dict[str, int] = {}
     for server, language, source in REFERENCE_SERVERS:
         found = declarations(load(source).decode("utf-8", errors="replace"), language=language)
-        per_server[server] = len(found)
+        per_source[server] = len(found)
         cases.extend(benign_cases(found, server=server))
+
+    guard = mcpguard_benign(load(MCPGUARD_DEV).decode("utf-8", errors="replace"))
+    per_source["mcpguard (benign half)"] = len(guard)
+    cases.extend(guard)
+
     report = run("gateway", default_controls(schemas=DEFAULT_SCHEMAS), cases, SANDBOX)
-    return report, per_server
+    return report, per_source
 
 
 def emit_benign(report: Report, per_server: dict[str, int]) -> None:
     total = len(report.outcomes)
     print()
     print("=" * 72)
-    print(f"{total} real tool declarations from the official MCP reference servers")
+    print(f"{total} real tool declarations, from sources nobody wrote to be tested")
     print()
-    print("harvested per server")
+    print("harvested per source")
     for server, count in per_server.items():
         note = "   <- none found; format may have changed" if count == 0 else ""
         print(f"  {server:<22} {count}{note}")

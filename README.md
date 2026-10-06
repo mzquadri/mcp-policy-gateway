@@ -213,6 +213,27 @@ make bench-external     # fetches once, then deterministic
 Full write-up, including what it does not establish, in
 [`docs/learning/08_external_validation.md`](docs/learning/08_external_validation.md).
 
+### What it cannot see
+
+A recall number over a corpus of tool poisoning is silent about the other sixteen things on
+the published list. So the nine controls are also mapped against MCPSecBench's taxonomy of
+17 attack vectors across four surfaces: **8 covered, 3 visible but uncovered, 6 structurally
+out of reach** from a position at the protocol boundary.
+
+The three uncovered ones are a single missing capability. Package name squatting by server
+name, configuration drift and rug pull are all visible here, and none is addressed, because
+every control is a pure function of one event: *nothing remembers what a server declared
+last time*. A definition that was benign on Monday and hostile on Friday is two independent
+evaluations, both correct, and the change between them is the attack.
+
+```bash
+make coverage-map
+```
+
+The map is data in `evaluation/coverage.py`, not prose, and tests hold it to the taxonomy
+and to the control set in both directions. Full reasoning per vector in
+[`docs/learning/09_coverage.md`](docs/learning/09_coverage.md).
+
 ## Run it
 
 ```bash

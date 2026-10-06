@@ -1,11 +1,12 @@
 # Development tasks. Everything here runs offline: no API key, no network, no GPU.
-.PHONY: help install check lint format types test bench bench-external demo evidence all
+.PHONY: help install check lint format types test bench bench-external coverage-map demo evidence all
 
 help:
 	@echo "install   editable install with dev extras"
 	@echo "check     lint, format check, types, tests  (what CI runs)"
 	@echo "bench     the benchmark table"
 	@echo "bench-external  score against MCPTox; fetches once, then offline"
+	@echo "coverage-map    which published attack vectors this position can address"
 	@echo "demo      the gateway against the hostile example server"
 	@echo "evidence  regenerate assets/ from a live run"
 
@@ -30,6 +31,9 @@ bench:
 # The only target that touches the network, and only on a cold cache.
 bench-external:
 	python -m evaluation.external
+
+coverage-map:
+	python -m evaluation.coverage
 
 demo:
 	python -m mcp_policy_gateway.cli demo

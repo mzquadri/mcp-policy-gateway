@@ -168,7 +168,7 @@ had never seen this project.
 |---|---|---|
 | my corpus, 26 attacks | 96.2% | [81.1%, 99.3%] |
 | MCPTox, 485 declarations, as the gateway stood | **11.3%** | [8.8%, 14.5%] |
-| MCPTox, after the changes it prompted | **49.5%** | [45.1%, 53.9%] |
+| MCPTox, after the changes it prompted | **55.1%** | [50.6%, 59.4%] |
 
 The first number is the useful one. `mandatory_tool_precondition` bounded the gap between
 "before" and the obligation at 40 characters, which fits how *I* write a case and not how
@@ -188,7 +188,16 @@ That includes the `fetch` server's own description, which tells the model it was
 refuse and tell the user this" and that it may now do otherwise. Official prose with the
 shape of an injection, and it passes.
 
-**49.5% should not be read as generalisation.** A large part of the gain is one rule whose
+A second external source, [MSB](https://github.com/dongsenzhang/MSB) (ICLR 2026), reaches
+the stage none of the above does: fifteen attacks arriving inside **tool results**, which is
+the case a static scanner structurally cannot cover. The gateway caught **0 of 15**. Three
+wrappers failed for three reasons, the first being that `mandatory_tool_precondition` knew
+`call`, `invoke`, `execute` and `run` but not **`use`** — the most ordinary word for invoking
+a tool. After fixes taken from threat rules ATR-2026-01302 and ATR-2026-01751 it catches
+15/15, and MCPTox rose 49.5% → 55.1% at no false-positive cost. That transfer, from a fix
+found on one corpus to a corpus by different authors, is the least circular evidence here.
+
+**55.1% should not be read as generalisation.** A large part of the gain is one rule whose
 trigger phrase appears in 0% of their first two generators and 35% of the third — one
 generator's opening sentence, not a property of tool poisoning. 245 of 485 are still missed
 and the three generators disagree at 29.9%, 45.4% and 59.6%. These rates also are not

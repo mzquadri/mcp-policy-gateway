@@ -1,7 +1,8 @@
 # External validation: scoring the gateway on a corpus I did not write
 
-Design document. Stages 1 and 4 are done and the results are in
-[§8](../learning/08_external_validation.md); Stages 2 and 3 are not started.
+Design document. Stages 1, 2 and 4 are done and the results are in
+[§8](../learning/08_external_validation.md); Stage 3, the coverage map against the
+MCPSecBench taxonomy, is not started.
 
 §6.6 and §7.5 both end at the same place: the corpus is mine, I wrote both the attacks and
 the controls, and no amount of care inside that loop substitutes for being scored by

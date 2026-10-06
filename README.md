@@ -179,6 +179,14 @@ value — had no rule at all. Neither could have been found on 47 cases of mine.
 The internal numbers did not move through either change, including the benign cases that
 caused that rule to be narrowed in the first place.
 
+The benign half is external too, because recall without a false-positive rate is the shape
+of result this project criticises the keyword filter for. Scored against 39 real tool
+declarations harvested from the official MCP reference servers, the gateway blocks **0** and
+touches **0** — including the `fetch` server's own description, which tells the model it was
+"advised to refuse and tell the user this" and that it may now do otherwise. That is official
+prose with the shape of an injection, and it passes. On 39 cases the interval still reaches
+9.0%, so it shows the two new rules do not fire on ordinary tool prose, and not much more.
+
 **39.8% should not be read as generalisation.** Most of the gain is one rule, and the phrase
 it keys on appears in 0% of their first two generators and 35% of the third. It is one
 generator's opening sentence. 292 of 485 are still missed and the three generators disagree

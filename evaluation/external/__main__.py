@@ -23,11 +23,14 @@ for path in (str(ROOT / "src"), str(ROOT)):
     if path not in sys.path:
         sys.path.insert(0, path)
 
-from evaluation.benchmark import wilson  # noqa: E402
+from evaluation.benchmark import DEFAULT_SCHEMAS, Report, run, wilson  # noqa: E402
 from evaluation.external.adapt import mcptox_cases  # noqa: E402
 from evaluation.external.fetch import ExternalCorpusError, load  # noqa: E402
+from evaluation.external.harvest import benign_cases, declarations  # noqa: E402
 from evaluation.external.score import ExternalReport, score  # noqa: E402
-from evaluation.external.sources import MCPTOX  # noqa: E402
+from evaluation.external.sources import MCPTOX, REFERENCE_SERVERS  # noqa: E402
+
+from mcp_policy_gateway.engine import default_controls  # noqa: E402
 
 SANDBOX = "/srv/sandbox"
 
@@ -92,6 +95,44 @@ def emit(result: ExternalReport) -> None:
     print("  independence of the evidence. Read the per-generator rows first.")
 
 
+def benign() -> tuple[Report, dict[str, int]]:
+    """Score real declarations from the official reference servers."""
+    cases = []
+    per_server: dict[str, int] = {}
+    for server, language, source in REFERENCE_SERVERS:
+        found = declarations(load(source).decode("utf-8", errors="replace"), language=language)
+        per_server[server] = len(found)
+        cases.extend(benign_cases(found, server=server))
+    report = run("gateway", default_controls(schemas=DEFAULT_SCHEMAS), cases, SANDBOX)
+    return report, per_server
+
+
+def emit_benign(report: Report, per_server: dict[str, int]) -> None:
+    total = len(report.outcomes)
+    print()
+    print("=" * 72)
+    print(f"{total} real tool declarations from the official MCP reference servers")
+    print()
+    print("harvested per server")
+    for server, count in per_server.items():
+        note = "   <- none found; format may have changed" if count == 0 else ""
+        print(f"  {server:<22} {count}{note}")
+    print()
+
+    blocked, n = report.false_block_count
+    clean, _ = report.clean_count
+    lo, hi = report.interval("false_block")
+    touched = n - clean
+    print(f"blocked        {blocked}/{n}  {pct(report.false_block)}  [{pct(lo)}, {pct(hi)}]")
+    print(f"touched at all {touched}/{n}  {pct(touched / n) if n else '-'}")
+    print()
+
+    offenders = [o for o in report.outcomes if not o.ok]
+    print(f"false positives (any action on a real tool): {len(offenders)}")
+    for o in offenders:
+        print(f"  {o.case_id:<44} {o.action:<10} {','.join(o.rules)}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(prog="evaluation.external")
     parser.add_argument("--json", type=Path, default=None, help="write the run as JSON")
@@ -99,6 +140,7 @@ def main() -> int:
 
     try:
         body = load(MCPTOX)
+        benign_report, per_server = benign()
     except ExternalCorpusError as exc:
         print(f"external corpus unavailable: {exc}", file=sys.stderr)
         return 2
@@ -106,6 +148,7 @@ def main() -> int:
     externals = mcptox_cases(json.loads(body))
     result = score(externals, sandbox=SANDBOX)
     emit(result)
+    emit_benign(benign_report, per_server)
 
     if args.json:
         args.json.parent.mkdir(parents=True, exist_ok=True)

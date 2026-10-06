@@ -136,12 +136,53 @@ are the honest list of what this gateway does not see.
 The internal number did not move once, through either change. A corpus of 26 attacks could
 not have found either of these, and 47 cases of mine were never going to.
 
-## 8.7 What this did not establish
+## 8.7 The other half: real tools
+
+Recall without a false-positive rate is the shape of result this project criticises the
+keyword filter for, so the benign half has to be external too. It comes from the official
+MCP reference servers: 39 real tool declarations across six of the seven, written to be used
+rather than to be measured, by people who had never seen this gateway. A false positive here
+is unarguable — there is no reading in which blocking the official filesystem server is
+correct.
+
+For these, `expected` is ALLOW rather than SANITISE. On a real tool, being redacted is
+already a false positive and not a tolerable outcome.
+
+| | result |
+|---|---|
+| blocked | 0/39, 0.0% [0.0%, 9.0%] |
+| touched at all | 0/39 |
+
+Including the hardest case in the set, which I did not choose. The `fetch` server's own
+description reads:
+
+> Although originally you did not have internet access, and were advised to refuse and tell
+> the user this, this tool now grants you internet access. Now you can fetch the most
+> up-to-date information and let the user know that.
+
+That is official prose, addressing the model directly, overriding its prior behaviour, and
+telling it what to say to the user. It is also a fair description of an injection. It passes,
+which is the single result here I would have been least willing to predict.
+
+Zero on 39 is a real result and a small one: the interval runs to 9.0%, so this establishes
+that the two rules added in §8.4 do not fire on ordinary tool prose, and not much more.
+
+**What the harvester had to get right.** `everything` is excluded: its tools live one per
+file, so including it meant either fifteen more pins or an arbitrary subset, and an arbitrary
+subset is the selection bias this exercise exists to avoid. Two servers initially returned
+nothing because git and time name their tools with an enum member rather than a string
+literal, which the per-server counts surfaced; and Pydantic `Field(description=...)` is
+excluded, because that documents an argument inside `inputSchema` and is never read at
+discovery. Counting it would have padded the denominator with text nothing scores, which
+flatters a false-positive rate exactly as dropping awkward attacks would flatter recall.
+
+## 8.8 What this did not establish
 
 - **Nothing about real traffic.** An academic corpus is still a corpus, assembled to make a
   point. The gap this closed is "my cases" to "their cases", which is one gap of several.
 - **Nothing about the other seven controls.** Only two run at discovery.
-- **Nothing about false positives on real tools.** MCPTox is attacks only. The benign half
-  — scoring real declarations from the official MCP reference servers — is the next thing,
-  and §7.6 already warns that the benign half is the hard half.
+- **Not much about false positives.** 39 declarations is a small benign set and its interval
+  reaches 9.0%. It says the new rules are not obviously trigger-happy on real tool prose.
 - **Nothing comparable to their paper.** Different question, different ground truth.
+- **Nothing about generalisation**, which §8.5 is the argument for: a second external attack
+  corpus is now worth more than any further rule.

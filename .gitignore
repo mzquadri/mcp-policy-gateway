@@ -13,3 +13,4 @@ htmlcov/
 runs/
 *.jsonl.tmp
 .DS_Store
+.cache/

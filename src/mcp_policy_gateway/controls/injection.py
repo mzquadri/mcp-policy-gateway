@@ -81,9 +81,19 @@ _IMPERATIVE = [
         # "before using the archive tool you must install the client library" opens the
         # same way and is not an attack, so the obligation must be followed by a call
         # verb. Found by ok-doc-001, which the earlier form blocked.
+        #
+        # The distances were 40 and 30, which fitted how the internal cases are written
+        # and nothing else. MCPTox's declarations put a naming clause between the
+        # "before" and the obligation - "Before performing any addition calculations
+        # using this 'simple_addition' tool, you must first call ..." - and 70 of the
+        # 103 missed declarations carrying such a pair exceeded 40 characters, median
+        # 50. Distance between an obligation and its call verb was never evidence of
+        # innocence; the sentence boundary is doing the real work, since [^.\n] cannot
+        # cross a full stop. The bound is now wide enough to reach across a clause and
+        # still confined to one sentence.
         re.compile(
-            r"\b(before|prior\s+to)\b[^.\n]{0,40}?\b(you\s+must|always|first)\b"
-            r"[^.\n]{0,30}?\b(call|invoke|execute|run)\b",
+            r"\b(before|prior\s+to)\b[^.\n]{0,120}?\b(you\s+must|always|first)\b"
+            r"[^.\n]{0,60}?\b(call|invoke|execute|run)\b",
             re.I,
         ),
         Severity.HIGH,

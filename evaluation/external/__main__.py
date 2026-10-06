@@ -24,7 +24,7 @@ for path in (str(ROOT / "src"), str(ROOT)):
         sys.path.insert(0, path)
 
 from evaluation.benchmark import DEFAULT_SCHEMAS, Report, run, wilson  # noqa: E402
-from evaluation.external.adapt import mcptox_cases  # noqa: E402
+from evaluation.external.adapt import mcptox_cases, msb_cases  # noqa: E402
 from evaluation.external.fetch import ExternalCorpusError, load  # noqa: E402
 from evaluation.external.harvest import (  # noqa: E402
     benign_cases,
@@ -35,6 +35,8 @@ from evaluation.external.score import ExternalReport, score  # noqa: E402
 from evaluation.external.sources import (  # noqa: E402
     MCPGUARD_DEV,
     MCPTOX,
+    MSB_TASKS,
+    MSB_TEMPLATES,
     REFERENCE_SERVERS,
 )
 
@@ -101,6 +103,38 @@ def emit(result: ExternalReport) -> None:
     print("  the attack success rates in their paper.")
     print("  All cases come from three generators, so the pooled interval overstates the")
     print("  independence of the evidence. Read the per-generator rows first.")
+
+
+def emit_msb() -> None:
+    """MSB's response-stage attacks: the only external data that reaches that stage."""
+    cases = msb_cases(
+        load(MSB_TEMPLATES).decode("utf-8", errors="replace"),
+        load(MSB_TASKS).decode("utf-8", errors="replace"),
+    )
+    result = score(cases, sandbox=SANDBOX)
+    low, high = result.interval
+
+    print()
+    print("=" * 72)
+    print(f"source      {MSB_TEMPLATES.name} + {MSB_TASKS.name}")
+    print(f"commit      {MSB_TEMPLATES.ref}")
+    print(f"citation    {MSB_TEMPLATES.citation}")
+    print(f"licence     {MSB_TEMPLATES.licence}")
+    print()
+    print(f"{result.total} response-stage attacks (3 wrappers x 5 goals), scored as tool results")
+    print()
+    print(f"caught      {result.caught}/{result.total}  {pct(result.recall)}")
+    print(f"95% Wilson  [{pct(low)}, {pct(high)}]")
+    print()
+    print("by wrapper (their template)")
+    for name, (caught, total) in result.by_paradigm.items():
+        lo, hi = wilson(caught, total)
+        print(f"  {name:<32} {caught}/{total}  {pct(caught / total):>6}   [{pct(lo)}, {pct(hi)}]")
+    print()
+    print("Reading this number")
+    print("  Fifteen cases from three wrappers is a small corpus and the interval says so.")
+    print("  It is the only external data here that reaches the response stage, which is")
+    print("  the stage section 9 calls this gateway's reason to exist.")
 
 
 def benign() -> tuple[Report, dict[str, int]]:
@@ -180,6 +214,7 @@ def main() -> int:
     externals = mcptox_cases(json.loads(body))
     result = score(externals, sandbox=SANDBOX)
     emit(result)
+    emit_msb()
     emit_benign(benign_report, per_server)
 
     if args.json:

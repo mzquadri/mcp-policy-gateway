@@ -157,10 +157,59 @@ MCPGUARD_DEV = Source(
     ),
 )
 
+
+#: MSB (MCP Security Bench, ICLR 2026), used for its response-stage attacks.
+#:
+#: MIT licensed, unlike MCPTox and MCP-Guard, so this one could be vendored; it is not,
+#: because one rule for every external source is easier to keep than one per licence.
+#:
+#: Two files, because their response-stage corpus is a cross product rather than a table:
+#: three attack wrappers in prompt_template.py by five goals in attack_task.jsonl. Fifteen
+#: cases is small, and it reaches a stage no other external source here reaches at all.
+_MSB_REF = "c1d6a70171e4d2c44c87a2ae909d13df00c6aa8d"
+_MSB_CITATION = (
+    "Zhang et al., MCP Security Bench (MSB): Benchmarking Attacks Against Model Context "
+    "Protocol in LLM Agents. ICLR 2026, arXiv:2510.15994. "
+    "https://github.com/dongsenzhang/MSB"
+)
+_MSB_LICENCE = "MIT, per their LICENSE. Fetched at evaluation time, cited, not redistributed."
+
+
+def _msb(name: str, path: str, sha256: str) -> Source:
+    return Source(
+        name=f"msb-{name}",
+        ref=_MSB_REF,
+        url=f"https://raw.githubusercontent.com/dongsenzhang/MSB/{_MSB_REF}/{path}",
+        sha256=sha256,
+        citation=_MSB_CITATION,
+        licence=_MSB_LICENCE,
+    )
+
+
+MSB_TEMPLATES = _msb(
+    "templates",
+    "data/prompt_template.py",
+    "7e011efeecf63a398ce02111faca746685157263fcf0cd66973898bf51ae8201",
+)
+MSB_TASKS = _msb(
+    "tasks",
+    "data/attack_task.jsonl",
+    "566f4c60f25dfd438af6b2a8fc05ba1aaccde93d1a8a75d0f8d9771fcdec9cdf",
+)
+
 ALL: tuple[Source, ...] = (
     MCPTOX,
     MCPGUARD_DEV,
+    MSB_TEMPLATES,
+    MSB_TASKS,
     *(source for _, _, source in REFERENCE_SERVERS),
 )
 
-__all__ = ["ALL", "MCPGUARD_DEV", "MCPTOX", "REFERENCE_SERVERS"]
+__all__ = [
+    "ALL",
+    "MCPGUARD_DEV",
+    "MCPTOX",
+    "MSB_TASKS",
+    "MSB_TEMPLATES",
+    "REFERENCE_SERVERS",
+]

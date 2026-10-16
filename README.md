@@ -1,7 +1,15 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/header-dark.png">
+  <img alt="A gateway that refuses — nine controls at the three points where an MCP tool call is untrusted, with a bar chart showing the policy gateway catching 96.2% of attacks against a keyword filter's 38.5%" src="docs/assets/header-light.png">
+</picture>
+
 # mcp-policy-gateway
 
-Runtime policy enforcement for Model Context Protocol tool calls, and a deterministic
-benchmark that measures which controls actually stop which attacks.
+An MCP server that sits in front of another MCP server and decides, call by call, what is
+allowed through. It is for anyone running Model Context Protocol tools against servers they
+do not control, where a poisoned tool description or a poisoned search result reaches the
+model's context before anybody reviews it. It ships with a deterministic benchmark, so the
+question "which control actually stops which attack" has an answer you can re-run.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/architecture-dark.svg">
@@ -9,9 +17,62 @@ benchmark that measures which controls actually stop which attacks.
   <img src="docs/architecture.svg" alt="Architecture: MCP client to policy gateway to downstream server, with a JSONL trace">
 </picture>
 
-On a 47 case corpus the gateway catches 25 of 26 attacks and wrongly blocks 2 of 21
-legitimate calls. A keyword filter, the alternative teams actually reach for, catches 10
-and blocks 7. Every number here is reproduced by `python evaluation/benchmark.py`.
+## The result
+
+47 cases: 26 attacks and 21 benign near-misses. No model calls, no network.
+`python evaluation/benchmark.py` reproduces every rate below exactly on any machine.
+
+| Configuration | Attacks caught | Benign refused | Benign untouched | Median decision |
+|---|---|---|---|---|
+| **baseline** (no gateway) | 0.0% | 0.0% | 100.0% | 0 µs |
+| **keyword filter** | 38.5% | 33.3% | 66.7% | 5 µs |
+| **gateway** | **96.2%** | **9.5%** | 76.2% | 249 µs |
+
+The decision-time column is the exception to "reproduces exactly": it is a property of the
+machine it ran on, not of the system, and it moves by tens of microseconds between runs.
+
+The keyword filter is in there because it is the real alternative. "We added a filter" is
+what actually happens when a team decides to do something about prompt injection, and
+comparing only against *nothing* would flatter the result. It catches a third of the
+attacks and refuses one in three legitimate calls, which is the profile of a control that
+gets switched off in week two.
+
+Scored separately against three external corpora nobody here wrote — details in
+[Scored against a corpus I did not write](#scored-against-a-corpus-i-did-not-write).
+
+## Run it
+
+Python 3.11 or newer. `pyproject.toml` sets `requires-python = ">=3.11"`, and CI runs the
+whole thing on 3.11, 3.12 and 3.13.
+
+```bash
+python -m venv .venv && . .venv/Scripts/activate     # or bin/activate
+pip install -e ".[dev]"
+
+python -m mcp_policy_gateway.cli demo                # real MCP process, real stdio
+python evaluation/benchmark.py                       # the table above
+pytest                                               # the test suite
+```
+
+`make check` runs what CI runs: ruff, mypy, pytest and the benchmark. Everything above is
+offline.
+
+`demo` launches a deliberately hostile MCP server from `examples/`, drives it through the
+gateway and prints every decision. It needs no API key, no network and no configuration.
+That is the point: an evaluation that needs a key is an evaluation nobody re-runs.
+
+To put the gateway in front of a server you already use:
+
+```bash
+python -m mcp_policy_gateway.cli proxy \
+  npx -y @modelcontextprotocol/server-filesystem /srv/docs \
+  --sandbox /srv/docs \
+  --allow read_file --allow list_directory \
+  --destructive write_file \
+  --allow-host docs.internal.example.com
+```
+
+---
 
 ## The problem
 
@@ -57,26 +118,9 @@ Nine controls run at those three stages:
 A control never decides on its own. It reports findings; the engine combines them, and
 the strongest action wins: allow, sanitise, hold for approval, or block.
 
-## Results
-
-Deterministic. 47 cases, no model calls, no network. `python evaluation/benchmark.py`
-reproduces every rate in this table exactly on any machine. The decision-time column is
-the exception: it is a property of the machine it ran on, not of the system, and it moves
-by tens of microseconds between runs.
-
-| Configuration | Attacks caught | Benign refused | Benign untouched | Median decision |
-|---|---|---|---|---|
-| **baseline** (no gateway) | 0.0% | 0.0% | 100.0% | 0 µs |
-| **keyword filter** | 38.5% | 33.3% | 66.7% | 5 µs |
-| **gateway** | **96.2%** | **9.5%** | 76.2% | 249 µs |
+## Reading the result
 
 ![What each option costs](docs/figures/01_tradeoff.png)
-
-The keyword filter is in there because it is the real alternative. "We added a filter" is
-what actually happens when a team decides to do something about prompt injection, and
-comparing only against *nothing* would flatter the result. It catches a third of the
-attacks and refuses one in three legitimate calls, which is the profile of a control that
-gets switched off in week two.
 
 ### How much of that gap the corpus can support
 
@@ -107,7 +151,7 @@ cases written the same way, and nothing about real traffic.
 
 ![Coverage by attack class](docs/figures/02_by_attack_class.png)
 
-Per control, on the same run:
+### Per control, on the same run
 
 | Control | Attacks caught | Benign cases touched |
 |---|---|---|
@@ -130,7 +174,8 @@ which is the argument for keeping the judgement in exactly one place.
 ## Where it fails
 
 Three cases out of 47 are not handled, and all three were written before the controls
-were.
+were. They stay in the corpus and stay scored, because deleting a case you cannot handle
+is how a benchmark stops measuring anything.
 
 `inject-006` used to be a fourth. It was a base64 override instruction with no plaintext
 around it, and the stated reason for leaving it was sound: decoding every base64-looking
@@ -211,9 +256,19 @@ rebuilt as weighted scoring against a threshold after MCP-Guard's `shadow_rules.
 which alone was worth ten points of recall at no false-positive cost. Both decision
 conventions are now reported, following [CASCADE](https://arxiv.org/abs/2604.17125).
 
-Nothing of theirs is redistributed here — they publish no licence, so the corpus is pinned
-by commit and digest and fetched at evaluation time. `make check` and `make bench` stay
-offline.
+### Where the external corpora are pinned
+
+Every external source is one entry in
+[`evaluation/external/sources.py`](evaluation/external/sources.py), and each entry pins a
+single file to a single commit and a single SHA-256 digest, alongside its citation and its
+licence terms. Nothing of theirs is copied into this repository. MCPTox and MC-Guard publish
+no licence, so default copyright applies and the files are fetched at evaluation time into a
+gitignored `.cache/`; MSB is MIT and is still fetched rather than vendored, because one rule
+for every source is easier to keep than one rule per licence. Pins are changed deliberately
+and the change is recorded in the write-up, never adjusted to make a run pass.
+
+`make check` and `make bench` stay offline. Only `bench-external` touches the network, and
+only on a cold cache.
 
 ```bash
 make bench-external     # fetches once, then deterministic
@@ -242,32 +297,6 @@ make coverage-map
 The map is data in `evaluation/coverage.py`, not prose, and tests hold it to the taxonomy
 and to the control set in both directions. Full reasoning per vector in
 [`docs/learning/09_coverage.md`](docs/learning/09_coverage.md).
-
-## Run it
-
-```bash
-python -m venv .venv && . .venv/Scripts/activate     # or bin/activate
-pip install -e ".[dev]"
-
-python -m mcp_policy_gateway.cli demo                # real MCP process, real stdio
-python evaluation/benchmark.py                       # the table above
-pytest                                               # the test suite
-```
-
-`demo` launches a deliberately hostile MCP server from `examples/`, drives it through the
-gateway and prints every decision. It needs no API key, no network and no configuration.
-That is the point: an evaluation that needs a key is an evaluation nobody re-runs.
-
-To put the gateway in front of a server you already use:
-
-```bash
-python -m mcp_policy_gateway.cli proxy \
-  npx -y @modelcontextprotocol/server-filesystem /srv/docs \
-  --sandbox /srv/docs \
-  --allow read_file --allow list_directory \
-  --destructive write_file \
-  --allow-host docs.internal.example.com
-```
 
 ## Upstream foundation
 
@@ -313,6 +342,14 @@ system the code does not have:
 python scripts/figures/generate_diagram.py   # docs/architecture.svg
 python scripts/figures/generate_figures.py   # docs/figures/*.png
 ```
+
+> **`assets/` is stale and needs regenerating.** `assets/results.json` records
+> `generated_from_commit: b07c7e4`, which is 18 commits behind HEAD, and
+> `assets/summary.json` still carries a median decision time of 214.9 µs from that run.
+> The current figure is 249 µs, which is what the table above reports. Run `make evidence`
+> to rebuild the evidence tree from a live run. The rate columns are unaffected — those are
+> pinned by `tests/test_corpus_and_benchmark.py` against a fresh benchmark, not against
+> `assets/`.
 
 ## Documentation
 

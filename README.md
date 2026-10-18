@@ -1,6 +1,6 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/header-dark.png">
-  <img alt="A gateway that refuses — nine controls at the three points where an MCP tool call is untrusted, with a bar chart showing the policy gateway catching 96.2% of attacks against a keyword filter's 38.5%" src="docs/assets/header-light.png">
+  <img alt="A gateway that refuses, nine controls at the three points where an MCP tool call is untrusted, with a bar chart showing the policy gateway catching 96.2% of attacks against a keyword filter's 38.5%" src="docs/assets/header-light.png">
 </picture>
 
 # mcp-policy-gateway
@@ -37,7 +37,7 @@ comparing only against *nothing* would flatter the result. It catches a third of
 attacks and refuses one in three legitimate calls, which is the profile of a control that
 gets switched off in week two.
 
-Scored separately against three external corpora nobody here wrote — details in
+Scored separately against three external corpora nobody here wrote, details in
 [Scored against a corpus I did not write](#scored-against-a-corpus-i-did-not-write).
 
 ## Run it
@@ -218,16 +218,16 @@ had never seen this project.
 The first number is the useful one. `mandatory_tool_precondition` bounded the gap between
 "before" and the obligation at 40 characters, which fits how *I* write a case and not how
 anyone else does; 72 of the 103 missed declarations carrying that pair exceeded it. A second
-attack class — a declaration claiming priority over the user, then coercing an argument
-value — had no rule at all. Neither could have been found on 47 cases of mine.
+attack class, a declaration claiming priority over the user, then coercing an argument
+value, had no rule at all. Neither could have been found on 47 cases of mine.
 
 The internal numbers did not move through either change, including the benign cases that
 caused that rule to be narrowed in the first place.
 
 The benign half is external too, because recall without a false-positive rate is the shape
 of result this project criticises the keyword filter for. Scored against **660 real tool
-declarations** — harvested from the official MCP reference servers and from MCP-Guard's
-benign set — the gateway blocks **0** and touches **0**, interval [0.0%, 0.6%].
+declarations**, harvested from the official MCP reference servers and from MCP-Guard's
+benign set, the gateway blocks **0** and touches **0**, interval [0.0%, 0.6%].
 
 That includes the `fetch` server's own description, which tells the model it was "advised to
 refuse and tell the user this" and that it may now do otherwise. Official prose with the
@@ -237,13 +237,13 @@ A second external source, [MSB](https://github.com/dongsenzhang/MSB) (ICLR 2026)
 the stage none of the above does: fifteen attacks arriving inside **tool results**, which is
 the case a static scanner structurally cannot cover. The gateway caught **0 of 15**. Three
 wrappers failed for three reasons, the first being that `mandatory_tool_precondition` knew
-`call`, `invoke`, `execute` and `run` but not **`use`** — the most ordinary word for invoking
+`call`, `invoke`, `execute` and `run` but not **`use`**, the most ordinary word for invoking
 a tool. After fixes taken from threat rules ATR-2026-01302 and ATR-2026-01751 it catches
-15/15, and MCPTox rose 49.5% → 55.1% at no false-positive cost. That transfer, from a fix
+15/15, and MCPTox rose 49.5% to 55.1% at no false-positive cost. That transfer, from a fix
 found on one corpus to a corpus by different authors, is the least circular evidence here.
 
 **55.1% should not be read as generalisation.** A large part of the gain is one rule whose
-trigger phrase appears in 0% of their first two generators and 35% of the third — one
+trigger phrase appears in 0% of their first two generators and 35% of the third, one
 generator's opening sentence, not a property of tool poisoning. 245 of 485 are still missed
 and the three generators disagree at 29.9%, 45.4% and 59.6%. These rates also are not
 comparable to the ones in their paper: MCPTox scores whether a *model complies*, this scores
@@ -252,7 +252,7 @@ whether a *control fires*.
 The changes that produced it came from reading published work rather than inventing rules:
 two detection rules transcribed from [MCP-Guard](https://github.com/GenTelLab/MCP-Guard),
 the localisation gap closed from threat rule ATR-2026-00148, and `argument_coercion`
-rebuilt as weighted scoring against a threshold after MCP-Guard's `shadow_rules.json` —
+rebuilt as weighted scoring against a threshold after MCP-Guard's `shadow_rules.json`,
 which alone was worth ten points of recall at no false-positive cost. Both decision
 conventions are now reported, following [CASCADE](https://arxiv.org/abs/2604.17125).
 
@@ -347,7 +347,7 @@ python scripts/figures/generate_figures.py   # docs/figures/*.png
 > `generated_from_commit: b07c7e4`, which is 18 commits behind HEAD, and
 > `assets/summary.json` still carries a median decision time of 214.9 µs from that run.
 > The current figure is 249 µs, which is what the table above reports. Run `make evidence`
-> to rebuild the evidence tree from a live run. The rate columns are unaffected — those are
+> to rebuild the evidence tree from a live run. The rate columns are unaffected, those are
 > pinned by `tests/test_corpus_and_benchmark.py` against a fresh benchmark, not against
 > `assets/`.
 

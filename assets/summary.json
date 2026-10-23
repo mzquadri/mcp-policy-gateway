@@ -8,7 +8,7 @@
   "keyword_caught": 0.3846,
   "keyword_false_block": 0.3333,
   "baseline_caught": 0.0,
-  "median_micros": 214.9,
+  "median_micros": 190.7,
   "controls": 9,
   "unhandled": [
     "fp-known-001",

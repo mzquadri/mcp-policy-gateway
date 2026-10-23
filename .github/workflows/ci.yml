@@ -4,6 +4,13 @@ on:
   push:
   pull_request:
 
+# Least privilege, per GitHub's "Security hardening for GitHub Actions". This workflow
+# only ever reads the repository: it installs, lints, type-checks, tests and runs the
+# benchmark, and publishes nothing. Declaring it here means the token cannot be widened
+# by a change to the repository-wide default.
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest

@@ -24,12 +24,15 @@ question "which control actually stops which attack" has an answer you can re-ru
 
 | Configuration | Attacks caught | Benign refused | Benign untouched | Median decision |
 |---|---|---|---|---|
-| **baseline** (no gateway) | 0.0% | 0.0% | 100.0% | 0 µs |
+| **baseline** (no gateway) | 0.0% | 0.0% | 100.0% | 1 µs |
 | **keyword filter** | 38.5% | 33.3% | 66.7% | 5 µs |
-| **gateway** | **96.2%** | **9.5%** | 76.2% | 249 µs |
+| **gateway** | **96.2%** | **9.5%** | 76.2% | 191 µs |
 
 The decision-time column is the exception to "reproduces exactly": it is a property of the
-machine it ran on, not of the system, and it moves by tens of microseconds between runs.
+machine it ran on, not of the system. Read only its order of magnitude. Across eight runs
+on one machine the gateway's median ranged from **191 µs to 710 µs**, the high end while
+that machine was busy with unrelated work. The four rate columns did not move at all
+across those runs, to the digit.
 
 The keyword filter is in there because it is the real alternative. "We added a filter" is
 what actually happens when a team decides to do something about prompt injection, and
@@ -101,6 +104,39 @@ An MCP server that fronts another MCP server. Your client connects to the gatewa
 gateway connects to the real server. Both sides speak ordinary MCP, so it works with a
 server whose source you do not have.
 
+```mermaid
+flowchart LR
+    C["MCP client<br/>host and model"]
+    S["downstream MCP server<br/>source you do not control"]
+
+    subgraph GW["mcp-policy-gateway"]
+        direction TB
+        D["<b>discovery</b><br/>what the server says its tools are"]
+        RQ["<b>request</b><br/>what the model is about to call"]
+        RS["<b>response</b><br/>what came back"]
+    end
+
+    C -- "list tools" --> D
+    D -- "declarations, some withheld" --> C
+    C -- "call tool" --> RQ
+    RQ -- "allowed call" --> S
+    S -- "result" --> RS
+    RS -- "result, allowed or redacted" --> C
+
+    D --> T["JSONL trace<br/>digests, not payloads"]
+    RQ --> T
+    RS --> T
+
+    linkStyle 0,2,3 stroke:#2563EB
+    linkStyle 1,4,5 stroke:#059669
+    linkStyle 6,7,8 stroke:#9CA3AF,stroke-dasharray: 4 3
+```
+
+Each stage is a different problem. Discovery is prose the server wrote about itself.
+Request is a call the model built. Response is content the server fetched and cannot
+vouch for. A scanner that reads declarations covers the first and structurally cannot
+reach the third, because a poisoned search result does not exist until the search runs.
+
 Nine controls run at those three stages:
 
 | Control | Stage | What it decides |
@@ -117,6 +153,36 @@ Nine controls run at those three stages:
 
 A control never decides on its own. It reports findings; the engine combines them, and
 the strongest action wins: allow, sanitise, hold for approval, or block.
+
+```mermaid
+flowchart LR
+    EV["one event<br/>a declaration, a call<br/>or a result"] --> RUN
+
+    subgraph RUN["every control for that stage runs"]
+        direction TB
+        K1["control"]
+        K2["control"]
+        K3["control"]
+    end
+
+    RUN --> FI["findings<br/>each with a severity<br/>and a proposed action"]
+    FI --> ENG{"engine takes the<br/><b>strongest</b> action"}
+
+    ENG --> A["<b>allow</b><br/>pass it through"]
+    ENG --> SA["<b>sanitise</b><br/>redact the span,<br/>keep the rest"]
+    ENG --> AP["<b>require_approval</b><br/>hold for a human"]
+    ENG --> BL["<b>block</b><br/>refuse, and say which rule"]
+
+    linkStyle 3 stroke:#059669
+    linkStyle 4 stroke:#D97706
+    linkStyle 5 stroke:#D97706
+    linkStyle 6 stroke:#2563EB
+```
+
+Controls keep running after one of them has already decided to block. That costs a little
+time and buys the per-control table further down: if the engine stopped at the first
+block, each control's count would depend on the order they happen to run in, and the
+table would measure the ordering rather than the control.
 
 ## Reading the result
 
@@ -244,8 +310,8 @@ found on one corpus to a corpus by different authors, is the least circular evid
 
 **55.1% should not be read as generalisation.** A large part of the gain is one rule whose
 trigger phrase appears in 0% of their first two generators and 35% of the third, one
-generator's opening sentence, not a property of tool poisoning. 245 of 485 are still missed
-and the three generators disagree at 29.9%, 45.4% and 59.6%. These rates also are not
+generator's opening sentence, not a property of tool poisoning. 218 of 485 are still missed
+and the three generators disagree at 39.0%, 56.3% and 59.6%. These rates also are not
 comparable to the ones in their paper: MCPTox scores whether a *model complies*, this scores
 whether a *control fires*.
 
@@ -261,7 +327,7 @@ conventions are now reported, following [CASCADE](https://arxiv.org/abs/2604.171
 Every external source is one entry in
 [`evaluation/external/sources.py`](evaluation/external/sources.py), and each entry pins a
 single file to a single commit and a single SHA-256 digest, alongside its citation and its
-licence terms. Nothing of theirs is copied into this repository. MCPTox and MC-Guard publish
+licence terms. Nothing of theirs is copied into this repository. MCPTox and MCP-Guard publish
 no licence, so default copyright applies and the files are fetched at evaluation time into a
 gitignored `.cache/`; MSB is MIT and is still fetched rather than vendored, because one rule
 for every source is easier to keep than one rule per licence. Pins are changed deliberately
@@ -343,13 +409,10 @@ python scripts/figures/generate_diagram.py   # docs/architecture.svg
 python scripts/figures/generate_figures.py   # docs/figures/*.png
 ```
 
-> **`assets/` is stale and needs regenerating.** `assets/results.json` records
-> `generated_from_commit: b07c7e4`, which is 18 commits behind HEAD, and
-> `assets/summary.json` still carries a median decision time of 214.9 µs from that run.
-> The current figure is 249 µs, which is what the table above reports. Run `make evidence`
-> to rebuild the evidence tree from a live run. The rate columns are unaffected, those are
-> pinned by `tests/test_corpus_and_benchmark.py` against a fresh benchmark, not against
-> `assets/`.
+`assets/results.json` stamps the commit it was generated from, so staleness is visible
+rather than assumed. Regenerate it with `make evidence` after any change that moves a
+number. The rate columns in the tables above do not depend on `assets/` either way: they
+are pinned by `tests/test_corpus_and_benchmark.py` against a fresh benchmark run.
 
 ## Documentation
 

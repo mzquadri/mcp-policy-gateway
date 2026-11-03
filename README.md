@@ -5,6 +5,16 @@
 
 # mcp-policy-gateway
 
+<!-- project-story:start -->
+<p align="center"><img src="docs/assets/architecture-animated.svg" alt="Animated architecture diagram of this project" width="100%"></p>
+
+| Problem | Why it mattered | Result |
+|---|---|---|
+| A model cannot reliably tell data from instructions. | Tool text reaches it at three different moments. | **96.2%** of 26 attack cases handled, at 9.5% false refusals |
+
+[See it animated on mzquadri.de](https://mzquadri.de/work/mcp-policy-gateway)
+<!-- project-story:end -->
+
 An MCP server that sits in front of another MCP server and decides, call by call, what is
 allowed through. It is for anyone running Model Context Protocol tools against servers they
 do not control, where a poisoned tool description or a poisoned search result reaches the
